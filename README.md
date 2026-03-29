@@ -6,7 +6,7 @@ Input: (tower type) (row) (col)
 Momentan este un tower defence simplu, ruleaza pe tick-uri interne ce se updateaza in consola la un interval de timp. afiseaza grid-ul cu path-ul inamicii si towerele
 
 
-###Roadmap
+### Roadmap
 
 ideea principala a jocului este un sistem de evolutie al towerelor semi random pentru a simula feeling-ul jocurilor rogue like.
 
