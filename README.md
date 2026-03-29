@@ -1,6 +1,7 @@
 # EvolutionTD
 
 Input: (tower type) (row) (col)
+
 Input: $ == nextwave
 
 Momentan este un tower defence simplu, ruleaza pe tick-uri interne ce se updateaza in consola la un interval de timp. Afiseaza grid-ul cu path-ul inamicii si towerele
