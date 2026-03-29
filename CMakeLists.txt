@@ -54,7 +54,10 @@ add_executable(${MAIN_EXECUTABLE_NAME}
 )
 target_sources(${MAIN_EXECUTABLE_NAME}
     PRIVATE
-        src/Example.cpp
+        src/Enemy.cpp
+        src/Tower.cpp
+        src/Wave.cpp
+        src/Game.cpp
 )
 
 # NOTE: Add all defined targets (e.g. executables, libraries, etc. )

@@ -1,55 +1,81 @@
 #include <iostream>
-#include <array>
-#include "include/Example.h"
-// This also works if you do not want `include/`, but some editors might not like it
-// #include "Example.h"
+#include <string>
+#include "Game.h"
+#include "Wave.h"
+#include "Enemy.h"
+
+// EvolutionTD - digitalsystem tower defense
+//
+// Path: (row, col):  (5,0) -> (5,10) -> (14,10) -> (14,19)
+//
+// 
+//   1 = PrimitiveAV  - $50, off-path, medium damage, 1 shot/s, range 4
+//   2 = Adblocker    - $40, off-path, low damage, 4 shots/s, range 3
+//   3 = Honeypot     - $30, off-path, slows enemies 20% in range 1.5
+//   4 = Firewall     - $60, on-path, absorbs enemies with HP <= its own HP, ignores rest.
+//
+// tastatura.txt format:
+//   <type> <row> <col>    place a tower 
+//   $                     start the next wave
 
 int main() {
-    std::cout << "Hello, world!\n";
-    Example e1;
-    e1.g();
-    std::array<int, 100> v{};
-    int nr;
-    std::cout << "Introduceți nr: ";
-    /////////////////////////////////////////////////////////////////////////
-    /// Observație: dacă aveți nevoie să citiți date de intrare de la tastatură,
-    /// dați exemple de date de intrare folosind fișierul tastatura.txt
-    /// Trebuie să aveți în fișierul tastatura.txt suficiente date de intrare
-    /// (în formatul impus de voi) astfel încât execuția programului să se încheie.
-    /// De asemenea, trebuie să adăugați în acest fișier date de intrare
-    /// pentru cât mai multe ramuri de execuție.
-    /// Dorim să facem acest lucru pentru a automatiza testarea codului, fără să
-    /// mai pierdem timp de fiecare dată să introducem de la zero aceleași date de intrare.
-    ///
-    /// Pe GitHub Actions (bife), fișierul tastatura.txt este folosit
-    /// pentru a simula date introduse de la tastatură.
-    /// Bifele verifică dacă programul are erori de compilare, erori de memorie și memory leaks.
-    ///
-    /// Dacă nu puneți în tastatura.txt suficiente date de intrare, îmi rezerv dreptul să vă
-    /// testez codul cu ce date de intrare am chef și să nu pun notă dacă găsesc vreun bug.
-    /// Impun această cerință ca să învățați să faceți un demo și să arătați părțile din
-    /// program care merg (și să le evitați pe cele care nu merg).
-    ///
-    /////////////////////////////////////////////////////////////////////////
-    std::cin >> nr;
-    /////////////////////////////////////////////////////////////////////////
-    for(int i = 0; i < nr; ++i) {
-        std::cout << "v[" << i << "] = ";
-        std::cin >> v[i];
+    Game game;
+
+    // Test Regula celor 3 pentru Wave:
+    {
+        Wave w1(0, {});
+        w1.addEnemy(makeAdware());      // w1: 1 inamic
+
+        Wave w2 = w1;                   // constructor de copiere
+        w2.addEnemy(makeTrojan());      // modificam COPIA -> w1 nu trebuie afectat
+
+        Wave w3(0, {});
+        w3 = w1;                        // operator= de copiere
+        w3.addEnemy(makeWorm());        // modificam si w3 -> w1 tot neatins
+
+        std::cout << "=== Test Regula celor 3 ===\n";
+        std::cout << "w1 original (1 inamic):         " << w1;
+        std::cout << "w2 copie cc (2 inamici):        " << w2;
+        std::cout << "w3 copie op= (2 inamici):       " << w3;
+        std::cout << "=> w1 are tot 1 inamic: copiile sunt independente\n";
     }
-    std::cout << "\n\n";
-    std::cout << "Am citit de la tastatură " << nr << " elemente:\n";
-    for(int i = 0; i < nr; ++i) {
-        std::cout << "- " << v[i] << "\n";
+
+    std::cout << "=== EvolutionTD: Digital Immune System ===\n";
+    game.displayGrid();
+    std::cout << game;
+
+    for (int wave = 1; !game.allWavesDone() && !game.isGameOver(); wave++) {
+        std::cout << "\n--- Pre-wave " << wave << " placement phase ---\n";
+        std::cout << game;
+        std::cout << "Towers: 1=PrimitiveAV($50) 2=Adblocker($40) 3=Honeypot($30) 4=Firewall($60,path)\n";
+        /////////////////////////////////////////////////////////////////////////
+        /// Observatie: dati exemple de date de intrare in fisierul tastatura.txt
+        /// astfel incat executia programului sa se incheie.
+        /// Format: <type> <row> <col> pentru fiecare turn dorit,
+        ///         apoi $ pe o linie separata pentru a incepe valul urmator.
+        /// Pe GitHub Actions, fisierul tastatura.txt simuleaza intrarea de la tastatura.
+        /////////////////////////////////////////////////////////////////////////
+        std::cout << "Enter placements (type row col). Enter $ to start the wave:\n";
+
+        std::string tok;
+        while (std::cin >> tok && tok != "$") {
+            int row = 0, col = 0;
+            std::cin >> row >> col;
+            game.placeTower(std::stoi(tok), col, row);
+        }
+
+        game.displayGrid();
+        game.runWave();
+
+        if (game.isGameOver()) {
+            std::cout << "\n!!! SYSTEM COMPROMISED - GAME OVER !!!\n";
+        }
     }
-    ///////////////////////////////////////////////////////////////////////////
-    /// Pentru date citite din fișier, NU folosiți tastatura.txt. Creați-vă voi
-    /// alt fișier propriu cu ce alt nume doriți.
-    /// Exemplu:
-    /// std::ifstream fis("date.txt");
-    /// for(int i = 0; i < nr2; ++i)
-    ///     fis >> v2[i];
-    ///
-    ///////////////////////////////////////////////////////////////////////////
+
+    if (!game.isGameOver()) {
+        std::cout << "\n=== All waves defeated - System secured! ===\n";
+        std::cout << game;
+    }
+
     return 0;
 }
