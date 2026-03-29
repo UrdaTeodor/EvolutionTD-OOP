@@ -66,7 +66,7 @@ int Wave::simulate(std::vector<Tower>& towers,
     // inamici ucisi -> bani, inamici scapati -> hp dmg
     int playerDamage = 0;
     std::vector<Enemy> survivors;
-    for (auto& enemy : activeEnemies) {
+    for (const auto& enemy : activeEnemies) {
         if (!enemy.isAlive()) {
             moneyEarned += enemy.getReward();
         } else if (enemy.hasReachedEnd(path)) {

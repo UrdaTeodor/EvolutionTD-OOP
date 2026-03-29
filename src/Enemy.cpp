@@ -93,7 +93,6 @@ bool Enemy::hasReachedEnd(const std::vector<std::pair<int, int>>& path) const {
 float Enemy::getX()             const { return x; }
 float Enemy::getY()             const { return y; }
 float Enemy::getCurrentHealth() const { return currentHealth; }
-float Enemy::getMaxHealth()     const { return maxHealth; }
 float Enemy::getEffectiveSpeed() const { return speed * slowFactor; }
 float Enemy::getVelocityX()     const { return vx; }
 float Enemy::getVelocityY()     const { return vy; }

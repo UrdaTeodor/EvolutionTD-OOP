@@ -98,7 +98,7 @@ bool Game::isValidPlacement(int col, int row, TowerType type) const {
     return (type == TowerType::FIREWALL) ? onPath : !onPath;
 }
 
-Wave Game::buildWave(int waveNum) const {
+Wave Game::buildWave(int waveNum) {
     Wave wave(waveNum, {});
     switch (waveNum) {
         case 1:

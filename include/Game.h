@@ -24,7 +24,7 @@ class Game {
     void refreshGrid();
     bool isPathCell(int x, int y) const;
     bool isOccupied(int x, int y) const;
-    Wave buildWave(int waveNum) const;  
+    static Wave buildWave(int waveNum);
     bool isValidPlacement(int x, int y, TowerType type) const;
 
 public:
