@@ -1,4 +1,23 @@
-# Nu primesc notă pentru că nu am pus titlu și descriere
+# EvolutionTD
+
+Input: (tower type) (row) (col)
+        $ == nextwave
+
+Momentan este un tower defence simplu, ruleaza pe tick-uri interne ce se updateaza in consola la un interval de timp. afiseaza grid-ul cu path-ul inamicii si towerele
+
+
+###Roadmap
+
+ideea principala a jocului este un sistem de evolutie al towerelor semi random pentru a simula feeling-ul jocurilor rogue like.
+
+voi implementa evolutii minore ce cresc stats-urile towerelor cu niste valori minore si random si evolutii majore ce schimba fundamental cum functioneaza turnul
+
+inamicii vor avea asemenea parti ce evolueaza dar vor fi 90% legati de val, ca sa poti sa diferentiezi un run bun de un run cu inamici slabi.
+
+Cum am spus si mai sus, va fi un sistem rogue like, adica vor fi elemente ce sunt influentate de skill (cum ar fi cumpararea evolutiilor cu credite in shop, deci defence-uri mai eficiente sunt mai bune long term) dar si de noroc (evolutii majore mai puternice si mai slabe, pe raritati eventual). practic cineva mai skilled isi face norocul singur cu mai multe evolutii cumparate dar oricine poate castiga daca joaca suficiente run-uri.
+
+Mai multe valuri si inamici, mai multe towere, shop cu optiuni mai multe, bossi, interfata si jucat in real time (nu doar intre valuri)
+
 
 ### Folosiți template-ul corespunzător grupei voastre!
 
