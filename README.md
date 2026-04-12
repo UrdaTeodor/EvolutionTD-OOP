@@ -2,7 +2,7 @@
 
 Input: (tower type) (row) (col) $ == nextwave
 
-Momentan este un tower defence simplu, ruleaza pe tick-uri interne ce se updateaza in consola la un interval de timp. afiseaza grid-ul cu path-ul inamicii si towerele
+Momentan este un tower defence simplu, ruleaza pe tick-uri interne ce se updateaza in consola la un interval de timp. afiseaza grid-ul cu path-ul inamicii si towerele.
 
 ### Roadmap
 
