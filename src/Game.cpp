@@ -1,8 +1,15 @@
 #include "Game.h"
+
+#include "AntivirusTower.h"
+#include "AdblockerTower.h"
+#include "HoneypotTower.h"
+#include "FirewallTower.h"
+#include "GameException.h"
 #include <iostream>
-#include <iomanip>
-#include <cmath>
-#include <algorithm>
+#include <iomanip>     
+#include <cmath>       
+#include <algorithm>   
+#include <string>      
 
 // ---- constructor ----
 
@@ -17,6 +24,71 @@ Game::Game()
     }
     initPath();
     refreshGrid();
+}
+
+// Constructor de COPIERE (polimorfic)
+// Game detine vector<unique_ptr<Tower>>: cc-ul implicit ar fi sters (unique_ptr).
+// Aici facem manual deep-copy clonand fiecare turn cu Tower::clone() (apel polimorfic
+// prin pointer la baza -> returneaza unique_ptr<Tower> de tipul concret corect).
+Game::Game(const Game& other)
+    : currentWave(other.currentWave),
+      playerHP(other.playerHP), money(other.money), waveNumber(other.waveNumber)
+      // snapshot_ ramane nullptr 
+{
+    // grid si pathGrid: initPath() le reconstruieste din hardcoded path.
+    for (int row = 0; row < GRID_SIZE; row++) {
+        for (int col = 0; col < GRID_SIZE; col++) {
+            grid[row][col]     = '.';
+            pathGrid[row][col] = false;
+        }
+    }
+    initPath();
+
+    towers.reserve(other.towers.size());
+    for (const auto& t : other.towers) {
+        towers.push_back(t->clone());
+    }
+
+    refreshGrid();   
+}
+
+// Operator= cu copy-and-swap 
+// Param by-value -> cc-ul s-a apelat deja inainte sa intram in functie.
+// Singura operatiune ramasa e swap-ul, care e noexcept
+Game& Game::operator=(Game other) {
+    swap(*this, other);
+    refreshGrid();  
+    return *this;
+}
+
+// Destructor explicit
+// Necesar pt ca avem unique_ptr<Game> snapshot_ self-referential:
+Game::~Game() = default;
+
+// Friend swap 
+// nu swap-uim: snapshot_ , grid , pathGrid si path .
+void swap(Game& a, Game& b) noexcept {
+    using std::swap;
+    swap(a.towers,      b.towers);
+    swap(a.currentWave, b.currentWave);
+    swap(a.playerHP,    b.playerHP);
+    swap(a.money,       b.money);
+    swap(a.waveNumber,  b.waveNumber);
+}
+
+// Snapshot / restore 
+// takeSnapshot: salvam o copie a *this. Folosim cc-ul nostru (deep-copy prin clone()).
+// snapshot_-ul copiei va fi nullptr (cc-ul nu copiaza snapshot_).
+void Game::takeSnapshot() {
+    snapshot_ = std::make_unique<Game>(*this);
+}
+
+// restoreSnapshot: reincarcam state-ul din snapshot prin op=.
+// dupa restore undo se poate aplica de cate ori vrem.
+bool Game::restoreSnapshot() {
+    if (!snapshot_) return false;
+    *this = *snapshot_;
+    return true;
 }
 
 // ---- private helpers ----
@@ -46,28 +118,19 @@ void Game::initPath() {
 void Game::refreshGrid() {
     for (int row = 0; row < GRID_SIZE; row++) {
         for (int col = 0; col < GRID_SIZE; col++) {
-            if (pathGrid[row][col]) 
-            {
+            if (pathGrid[row][col]) {
                 grid[row][col] = 'P';
-            } 
-            else 
-            {
+            } else {
                 grid[row][col] = '.';
             }
         }
     }
-    // Stratul de turnuri (suprascrie caracterul de drum pentru Firewall, care sta pe drum)
+    // strat 2: turnurile. APEL POLIMORFIC: tower->getDisplayChar() cheama varianta
+    // corecta in functie de tipul concret ('A' pt Antivirus, 'F' pt Firewall, etc.)
     for (const auto& tower : towers) {
-        char c = '?';
-        switch (tower.getType()) {
-            case TowerType::ANTIVIRUS: c = 'A'; break;
-            case TowerType::ADBLOCKER: c = 'D'; break;
-            case TowerType::HONEYPOT:  c = 'H'; break;
-            case TowerType::FIREWALL:  c = 'F'; break;
-        }
-        grid[tower.getY()][tower.getX()] = c;
+        grid[tower->getY()][tower->getX()] = tower->getDisplayChar();
     }
-    // Stratul inamicilor (suprascrie tot)
+    // strat 3: inamicii (suprascriu tot)
     for (const auto& enemy : currentWave.getActiveEnemies()) {
         if (!enemy.isAlive()) continue;
         int col = static_cast<int>(std::round(enemy.getX()));
@@ -82,21 +145,23 @@ bool Game::isPathCell(int col, int row) const {
     return pathGrid[row][col];
 }
 
+// Itereaza prin turnuri si verifica daca exista deja unul la (col, row).
+// tower-> pentru ca elementele din vector sunt unique_ptr<Tower>.
 bool Game::isOccupied(int col, int row) const {
     for (const auto& tower : towers) {
-        if (tower.getX() == col && tower.getY() == row) return true;
+        if (tower->getX() == col && tower->getY() == row) return true;
     }
     return false;
 }
 
-
-//   Firewall trebuie sa fie pe drum si neocupat
-bool Game::isValidPlacement(int col, int row, TowerType type) const {
+// Verifica plasarea: in grid, neocupat, si pe path (sau in afara) in functie de needsPath.
+bool Game::isValidPlacement(int col, int row, bool needsPath) const {
     if (col < 0 || col >= GRID_SIZE || row < 0 || row >= GRID_SIZE) return false;
     if (isOccupied(col, row)) return false;
     bool onPath = isPathCell(col, row);
-    return (type == TowerType::FIREWALL) ? onPath : !onPath;
+    return needsPath ? onPath : !onPath;
 }
+
 
 Wave Game::buildWave(int waveNum) {
     Wave wave(waveNum, {});
@@ -124,52 +189,58 @@ Wave Game::buildWave(int waveNum) {
     return wave;
 }
 
-
-bool Game::placeTower(int typeChoice, int col, int row) {
-    TowerType type;
+// Cumpara si plaseaza un turn de tipul typeChoice la (col, row).
+// exceptii :
+//   - InvalidPlacementException pentru orice eroare de plasare
+//   - InsufficientFundsException cand nu ai destui credit
+void Game::placeTower(int typeChoice, int col, int row) {
+    // construim turnul prin factory (returneaza unique_ptr<Tower>).
+    // Daca aruncam exceptie dupa, unique_ptr-ul iese din scope si turnul se sterge
+    std::unique_ptr<Tower> newTower;
     switch (typeChoice) {
-        case 1: type = TowerType::ANTIVIRUS; break;
-        case 2: type = TowerType::ADBLOCKER; break;
-        case 3: type = TowerType::HONEYPOT;  break;
-        case 4: type = TowerType::FIREWALL;  break;
+        case 1: newTower = makeAntivirus(col, row); break;   // -> AntivirusTower.cpp
+        case 2: newTower = makeAdblocker(col, row); break;   // -> AdblockerTower.cpp
+        case 3: newTower = makeHoneypot(col, row);  break;   // -> HoneypotTower.cpp
+        case 4: newTower = makeFirewall(col, row);  break;   // -> FirewallTower.cpp
         default:
-            std::cout << "Invalid tower type (1-4).\n";
-            return false;
+            throw InvalidPlacementException(
+                "Tip turn invalid: " + std::to_string(typeChoice) + " (alege 1-4)");
     }
 
-    if (!isValidPlacement(col, row, type)) {
-        std::cout << "Cannot place tower at (" << col << "," << row << "): ";
+    // Apel polymorphic: requiresPath() returneaza true doar pt FirewallTower.
+    bool needsPath = newTower->requiresPath();
+
+    if (!isValidPlacement(col, row, needsPath)) {
+        std::string pos = "(" + std::to_string(col) + "," + std::to_string(row) + ")";
         if (isOccupied(col, row)) {
-            std::cout << "cell is already occupied.\n";
-        } else if (type == TowerType::FIREWALL && !isPathCell(col, row)) {
-            std::cout << "Firewall must be placed ON the path.\n";
-        } else {
-            std::cout << "cell is on the path (only Firewall may go there).\n";
+            throw InvalidPlacementException("Celula " + pos + " e deja ocupata");
         }
-        return false;
+        if (needsPath && !isPathCell(col, row)) {
+            throw InvalidPlacementException(
+                "Firewall trebuie plasat PE drum, dar " + pos + " nu e drum");
+        }
+        throw InvalidPlacementException(
+            "Celula " + pos + " e pe drum (doar Firewall poate fi acolo)");
     }
 
-    // Construim turnul in functie de tip 
-    Tower newTower = makeAntivirus(col, row); // implicit; suprascris mai jos daca e nevoie
-    if      (type == TowerType::ADBLOCKER) newTower = makeAdblocker(col, row);
-    else if (type == TowerType::HONEYPOT)  newTower = makeHoneypot(col, row);
-    else if (type == TowerType::FIREWALL)  newTower = makeFirewall(col, row);
-
-    int towerCost = newTower.getCost();
+    int towerCost = newTower->getCost();
     if (money < towerCost) {
-        std::cout << "Not enough credits (need " << towerCost << ", have " << money << ").\n";
-        return false;
+        throw InsufficientFundsException(towerCost, money);
     }
 
     money -= towerCost;
-    towers.push_back(newTower);
+    std::cout << "Placed " << newTower->getName()
+              << " at (row=" << row << ", col=" << col << ") for " << towerCost << " credits.\n";
+    // std::move = transferam proprietatea unique_ptr-ului catre vector.
+    towers.push_back(std::move(newTower));
     refreshGrid();
-    std::cout << "Placed " << newTower.getName()
-              << " at (" << col << "," << row << ") for " << towerCost << " credits.\n";
-    return true;
 }
 
+// Ruleaza valul curent: loop pe tick-uri pana cand toti inamicii sunt morti/scapati
+// sau jucatorul ramane fara HP.
 void Game::runWave() {
+    takeSnapshot();
+
     currentWave = buildWave(waveNumber);
 
     std::cout << "\n=== WAVE " << waveNumber << " starting ===\n";
@@ -232,7 +303,9 @@ bool Game::allWavesDone() const {
     return waveNumber > MAX_WAVES;
 }
 
+// Friend operator<<: afiseaza statusul jocului (HP, bani, val curent).
 std::ostream& operator<<(std::ostream& os, const Game& g) {
+    // limitam display-ul la MAX_WAVES (ca sa nu apara "4/3" cand am terminat valul 3)
     int displayWave = g.waveNumber <= Game::MAX_WAVES ? g.waveNumber : Game::MAX_WAVES;
     os << "[ System HP: " << g.playerHP
        << " | Credits: " << g.money

@@ -56,8 +56,17 @@ target_sources(${MAIN_EXECUTABLE_NAME}
     PRIVATE
         src/Enemy.cpp
         src/Tower.cpp
+        src/AntivirusTower.cpp
+        src/AdblockerTower.cpp
+        src/HoneypotTower.cpp
+        src/FirewallTower.cpp
         src/Wave.cpp
         src/Game.cpp
+        src/Evolution.cpp
+        src/StatEvolution.cpp
+        src/AbilityEvolution.cpp
+        src/MythicEvolution.cpp
+        src/EvolutionFactory.cpp
 )
 
 # NOTE: Add all defined targets (e.g. executables, libraries, etc. )

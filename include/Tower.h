@@ -2,58 +2,50 @@
 #include <string>
 #include <ostream>
 #include <vector>
-#include <utility>
+#include <memory> 
 #include "Enemy.h"
 
-enum class TowerType { ANTIVIRUS, ADBLOCKER, HONEYPOT, FIREWALL };
-
+// Tower e clasa de baza abstracta pentru toate tipurile de turnuri.
 class Tower {
     std::string name;
-    TowerType type;
-    float damage;
-    float attackSpeed;      
-    float range;            
-    float projectileSpeed;  
     int cost;
-    int x, y;               // position
-    float attackCooldown;   
-    float currentHP;        // Firewall 
-    float maxHP;            // Firewall 
-    float regenRate;        // Firewall 
-
-    bool isInRange(const Enemy& enemy) const;
-    void attackEnemy(Enemy& enemy);
-    void blockEnemy(Enemy& enemy); // Firewall
+    int x, y;        
+    float range;     
 
 
-    void applyHoneypotSlow(std::vector<Enemy>& enemies);
+    bool movable;
 
 public:
-    Tower(const std::string& name, TowerType type,
-          float damage, float attackSpeed, float range,
-          float projectileSpeed, int cost, int x, int y,
-          float maxHP = 0.0f, float regenRate = 0.0f);
+    Tower(const std::string& name, int cost, int x, int y, float range);
+    virtual ~Tower() = default;
+
+    virtual void update(std::vector<Enemy>& enemies, float deltaTime) = 0;
+    virtual char getDisplayChar() const = 0;
+
+    // Necesar pt cc/op= din Game, care detine vector<unique_ptr<Tower>>.
+    // Fiecare derivata returneaza make_unique<XxxTower>(*this)
+    virtual std::unique_ptr<Tower> clone() const = 0;
+
+    // doar FirewallTower returneaza true
+    virtual bool requiresPath() const;
 
 
-    std::pair<float, float> calculateInterceptPoint(const Enemy& enemy) const;
+    // Derivatele pot suprascrie daca au logica speciala (ex. Firewall nu beneficiaza).
+    virtual void buffRange(float pct);
 
+    // ability MOVABLE: setata din AbilityEvolution; e gratuita pentru toate turnurile.
+    void enableMovable();
+    bool isMovable() const;
 
-    void update(std::vector<Enemy>& enemies, float deltaTime);
-
-
-    void blockEnemiesOnPath(std::vector<Enemy>& enemies);
-
-    TowerType getType() const;
     int getX() const;
     int getY() const;
     int getCost() const;
+    float getRange() const;
     const std::string& getName() const;
 
     friend std::ostream& operator<<(std::ostream& os, const Tower& t);
+
+protected:
+    // NVI: derivatele suprascriu doar partea de detalii specifice
+    virtual void displayDetails(std::ostream& os) const = 0;
 };
-
-
-Tower makeAntivirus(int col, int row);
-Tower makeAdblocker(int col, int row);
-Tower makeHoneypot(int col, int row);
-Tower makeFirewall(int col, int row);

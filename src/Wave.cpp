@@ -3,6 +3,7 @@
 
 //Regula celor 3 (cand Wave va contine pointeri la inamici polimorfici)
 
+
 Wave::Wave(int waveNumber, std::vector<Enemy> enemies)
     : activeEnemies(), pendingEnemies(enemies),
       waveNumber(waveNumber), spawnTimer(0.0f) {}
@@ -12,6 +13,7 @@ Wave::Wave(const Wave& other)
       pendingEnemies(other.pendingEnemies),
       waveNumber(other.waveNumber),
       spawnTimer(other.spawnTimer) {}
+
 
 Wave& Wave::operator=(const Wave& other) {
     if (this != &other) {
@@ -23,13 +25,13 @@ Wave& Wave::operator=(const Wave& other) {
     return *this;
 }
 
+
 Wave::~Wave() {
-    //poate fi folosit in viitor pentru curatare (ex. efecte vizuale, sunet)
 }
 
-//simuleaza un tick al valului
-
-int Wave::simulate(std::vector<Tower>& towers,
+// simuleaza al valului. Apelata din Game::runWave (src/Game.cpp).
+// towers e vector de unique_ptr<Tower> => apel polimorfic prin tower->update().
+int Wave::simulate(std::vector<std::unique_ptr<Tower>>& towers,
                    const std::vector<std::pair<int, int>>& path,
                    float deltaTime,
                    int& moneyEarned) {
@@ -53,7 +55,7 @@ int Wave::simulate(std::vector<Tower>& towers,
 
     // 3. Fiecare turn actioneaza
     for (auto& tower : towers) {
-        tower.update(activeEnemies, deltaTime);
+        tower->update(activeEnemies, deltaTime);
     }
 
     // 4. Misca fiecare inamic
@@ -82,7 +84,6 @@ int Wave::simulate(std::vector<Tower>& towers,
     return playerDamage;
 }
 
-
 void Wave::addEnemy(const Enemy& enemy) {
     pendingEnemies.push_back(enemy);
 }
@@ -99,12 +100,13 @@ const std::vector<Enemy>& Wave::getActiveEnemies() const {
     return activeEnemies;
 }
 
+// Friend operator<<: poate accesa direct membrii private ai Wave.
 std::ostream& operator<<(std::ostream& os, const Wave& w) {
     os << "Wave " << w.waveNumber
        << " | active:" << w.activeEnemies.size()
        << " | queued:" << w.pendingEnemies.size() << "\n";
     for (const auto& e : w.activeEnemies) {
-        os << "  " << e << "\n";
+        os << "  " << e << "\n";  // -> Enemy::operator<< (src/Enemy.cpp)
     }
     return os;
 }

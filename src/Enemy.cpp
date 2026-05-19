@@ -7,22 +7,20 @@ Enemy makeAdware() { return Enemy("Adware", 50.0f,  2.0f, 10); }
 Enemy makeTrojan() { return Enemy("Trojan", 150.0f, 1.0f, 25); }
 Enemy makeWorm()   { return Enemy("Worm",   30.0f,  4.0f, 15); }
 
-//constructor
 
+// pathIndex = 1 pentru ca pozitia 0 din path e startul, deja "atinsa".
 Enemy::Enemy(const std::string& name, float maxHealth, float speed, int reward)
     : name(name), maxHealth(maxHealth), currentHealth(maxHealth),
       speed(speed), reward(reward),
       pathIndex(1), x(0.0f), y(0.0f),
       slowFactor(1.0f), vx(0.0f), vy(0.0f) {}
 
-// calculeaza distanta pana la un punct
 
 float Enemy::distanceTo(float targetX, float targetY) const {
     float dx = targetX - x;
     float dy = targetY - y;
     return std::sqrt(dx * dx + dy * dy);
 }
-
 
 
 void Enemy::placeAt(float startX, float startY) {
@@ -33,11 +31,14 @@ void Enemy::placeAt(float startX, float startY) {
     vy = 0.0f;
 }
 
-void Enemy::move(const std::vector<std::pair<int, int>>& path, float deltaTime) {
-    if (pathIndex >= static_cast<int>(path.size())) return; // path.size returneaza nr de waypoints(start + 2 curbe + end) iar pathIndex are indexul urmatorului waypoint, deci daca e >= inseamna ca am trecut de ultimul waypoint si am ajuns la final
 
-    float targetX = static_cast<float>(path[pathIndex].second); // .second = col = poz orizontala
-    float targetY = static_cast<float>(path[pathIndex].first);  // .first  = row = poz verticala
+// Cand ajunge la un waypoint, trece la urmatorul. Updateaza si viteza (vx, vy)
+
+void Enemy::move(const std::vector<std::pair<int, int>>& path, float deltaTime) {
+    if (pathIndex >= static_cast<int>(path.size())) return;  // a trecut de ultimul waypoint
+
+    float targetX = static_cast<float>(path[pathIndex].second); 
+    float targetY = static_cast<float>(path[pathIndex].first);  
     float dist    = distanceTo(targetX, targetY);
     float step    = getEffectiveSpeed() * deltaTime;
 
@@ -54,8 +55,8 @@ void Enemy::move(const std::vector<std::pair<int, int>>& path, float deltaTime) 
 
     // updateaza vectorul de viteza
     if (pathIndex < static_cast<int>(path.size())) {
-        float nextX   = static_cast<float>(path[pathIndex].second); 
-        float nextY   = static_cast<float>(path[pathIndex].first);  
+        float nextX = static_cast<float>(path[pathIndex].second);
+        float nextY = static_cast<float>(path[pathIndex].first);
         float nextDist = distanceTo(nextX, nextY);
         if (nextDist > 0.01f) {
             float spd = getEffectiveSpeed();
