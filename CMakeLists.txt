@@ -60,6 +60,7 @@ target_sources(${MAIN_EXECUTABLE_NAME}
         src/AdblockerTower.cpp
         src/HoneypotTower.cpp
         src/FirewallTower.cpp
+        src/BytecoinMinerTower.cpp
         src/Wave.cpp
         src/Game.cpp
         src/Evolution.cpp

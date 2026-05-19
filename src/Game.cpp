@@ -4,6 +4,7 @@
 #include "AdblockerTower.h"
 #include "HoneypotTower.h"
 #include "FirewallTower.h"
+#include "BytecoinMinerTower.h"
 #include "GameException.h"
 #include <iostream>
 #include <iomanip>     
@@ -202,9 +203,10 @@ void Game::placeTower(int typeChoice, int col, int row) {
         case 2: newTower = makeAdblocker(col, row); break;   // -> AdblockerTower.cpp
         case 3: newTower = makeHoneypot(col, row);  break;   // -> HoneypotTower.cpp
         case 4: newTower = makeFirewall(col, row);  break;   // -> FirewallTower.cpp
+        case 5: newTower = makeBytecoinMiner(col, row); break; // -> BytecoinMinerTower.cpp
         default:
             throw InvalidPlacementException(
-                "Tip turn invalid: " + std::to_string(typeChoice) + " (alege 1-4)");
+                "Tip turn invalid: " + std::to_string(typeChoice) + " (alege 1-5)");
     }
 
     // Apel polymorphic: requiresPath() returneaza true doar pt FirewallTower.
@@ -273,6 +275,18 @@ void Game::runWave() {
     refreshGrid();
     displayGrid();
     std::cout << "\n=== WAVE " << waveNumber << " complete ===\n";
+
+    // APEL POLIMORFIC: collectIncome() returneaza 25 doar pentru BytecoinMinerTower,
+    // 0 pentru restul (default in Tower::collectIncome). Game nu trebuie sa stie tipul concret.
+    for (const auto& tower : towers) {
+        int income = tower->collectIncome();
+        if (income > 0) {
+            money += income;
+            std::cout << "  >> " << tower->getName() << " mined +" << income
+                      << " credits! Total: " << money << "\n";
+        }
+    }
+
     std::cout << *this;
     waveNumber++;
 }
@@ -292,7 +306,7 @@ void Game::displayGrid() const {
         }
         std::cout << "\n";
     }
-    std::cout << "Legend: .=empty  P=path  A=Antivirus  D=Adblocker  H=Honeypot  F=Firewall  E=Enemy\n";
+    std::cout << "Legend: .=empty  P=path  A=Antivirus  D=Adblocker  H=Honeypot  F=Firewall  M=Miner  E=Enemy\n";
 }
 
 bool Game::isGameOver() const {

@@ -29,6 +29,10 @@ public:
     // doar FirewallTower returneaza true
     virtual bool requiresPath() const;
 
+    // BytecoinMinerTower returneaza un venit pasiv (25) la finalul fiecarui val.
+    // Restul turnurilor returneaza 0 (default).
+    virtual int collectIncome() { return 0; }
+
 
     // Derivatele pot suprascrie daca au logica speciala (ex. Firewall nu beneficiaza).
     virtual void buffRange(float pct);

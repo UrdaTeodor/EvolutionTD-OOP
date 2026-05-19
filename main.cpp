@@ -13,10 +13,11 @@
 // Path: (row, col):  (5,0) -> (5,10) -> (14,10) -> (14,19)
 //
 // Turnuri disponibile:
-//   1 = PrimitiveAV  - $50, off-path, medium damage, 1 shot/s, range 4
-//   2 = Adblocker    - $40, off-path, low damage, 4 shots/s, range 3
-//   3 = Honeypot     - $30, off-path, slows enemies 20% in range 1.5
-//   4 = Firewall     - $60, on-path, absorbs enemies cu HP <= HP propriu
+//   1 = PrimitiveAV     - $50, off-path, medium damage, 1 shot/s, range 4
+//   2 = Adblocker       - $40, off-path, low damage, 4 shots/s, range 3
+//   3 = Honeypot        - $30, off-path, slows enemies 20% in range 1.5
+//   4 = Firewall        - $60, on-path, absorbs enemies cu HP <= HP propriu
+//   5 = BytecoinMiner   - $50, off-path, nu ataca, +25 credits/val (ROI 2 valuri)
 //
 // tastatura.txt format:
 //   <type> <row> <col>    plaseaza un tower
@@ -87,7 +88,7 @@ int main() {
     for (int wave = 1; !game.allWavesDone() && !game.isGameOver(); wave++) {
         std::cout << "\n--- Pre-wave " << wave << " placement phase ---\n";
         std::cout << game;
-        std::cout << "Towers: 1=PrimitiveAV($50) 2=Adblocker($40) 3=Honeypot($30) 4=Firewall($60,path)\n";
+        std::cout << "Towers: 1=PrimitiveAV($50) 2=Adblocker($40) 3=Honeypot($30) 4=Firewall($60,path) 5=Miner($50,+25/wave)\n";
         std::cout << "Enter placements (type row col). 'u'=undo last wave. '$'=start wave:\n";
 
         // Citim placement-urile pana la "$" (separator de val).
