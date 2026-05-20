@@ -10,7 +10,7 @@
 // Contine grid-ul, turnurile, valul curent, HP-ul jucatorului, banii.
 class Game {
     static constexpr int GRID_SIZE      = 20;
-    static constexpr int MAX_WAVES      = 3;
+    static constexpr int MAX_WAVES      = 5;
     static constexpr int STARTING_HP    = 100;
     static constexpr int STARTING_MONEY = 105;
 
@@ -59,12 +59,30 @@ public:
     bool restoreSnapshot();                      // returneaza false daca nu exista snapshot
     int  getWaveNumber() const { return waveNumber; }   // pt sincronizare cu main
 
+    // Getters pentru rendering 
+    const std::vector<std::unique_ptr<Tower>>& getTowers()      const { return towers; }
+    const Wave&                                getCurrentWave() const { return currentWave; }
+    const std::vector<std::pair<int, int>>&    getPath()        const { return path; }
+    int                                        getPlayerHP()    const { return playerHP; }
+    int                                        getMoney()       const { return money; }
+    // cppcheck-suppress unusedFunction // public API expus pentru renderer / T3
+    static constexpr int                       getGridSize()          { return GRID_SIZE; }
+    static constexpr int                       getMaxWaves()          { return MAX_WAVES; }
+
     // typeChoice: 1=Antivirus, 2=Adblocker, 3=Honeypot, 4=Firewall
     // Arunca InvalidPlacementException sau InsufficientFundsException la eroare.
     // Apelantul din main are try/catch.
     void placeTower(int typeChoice, int x, int y);
 
-    void runWave();          
+    void runWave();
+
+    // Frame-by-frame API
+    // Ordinea de apel: startWave() -> tickWave(dt) cat timp isWaveActive() -> endWave().
+    void startWave();
+    void tickWave(float dt);
+    bool isWaveActive() const;
+    void endWave();
+
     void displayGrid() const;
     bool isGameOver() const;
     bool allWavesDone() const;

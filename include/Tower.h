@@ -30,7 +30,6 @@ public:
     virtual bool requiresPath() const;
 
     // BytecoinMinerTower returneaza un venit pasiv (25) la finalul fiecarui val.
-    // Restul turnurilor returneaza 0 (default).
     virtual int collectIncome() { return 0; }
 
 

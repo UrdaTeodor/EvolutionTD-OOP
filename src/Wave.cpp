@@ -37,13 +37,14 @@ int Wave::simulate(std::vector<std::unique_ptr<Tower>>& towers,
                    int& moneyEarned) {
     moneyEarned = 0;
 
-    // 1. Genereaza urmatorul inamic din coada cand timerul expira
+    // 1. Genereaza urmatorul inamic din coada cand timerul expira.
+    // Spawn FIFO
     spawnTimer -= deltaTime;
     if (spawnTimer <= 0.0f && !pendingEnemies.empty()) {
-        Enemy spawned = pendingEnemies.back();
-        pendingEnemies.pop_back();
-        spawned.placeAt(static_cast<float>(path[0].second), 
-                        static_cast<float>(path[0].first));  
+        Enemy spawned = pendingEnemies.front();
+        pendingEnemies.erase(pendingEnemies.begin());
+        spawned.placeAt(static_cast<float>(path[0].second),
+                        static_cast<float>(path[0].first));
         activeEnemies.push_back(spawned);
         spawnTimer = SPAWN_INTERVAL;
     }

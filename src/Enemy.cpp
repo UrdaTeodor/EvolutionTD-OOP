@@ -7,6 +7,9 @@ Enemy makeAdware() { return Enemy("Adware", 50.0f,  2.0f, 10); }
 Enemy makeTrojan() { return Enemy("Trojan", 150.0f, 1.0f, 25); }
 Enemy makeWorm()   { return Enemy("Worm",   30.0f,  4.0f, 15); }
 
+// Boss val 5: HP = 50 * Trojan (7500), viteza = 0.5 * Trojan, reward 500.
+Enemy makeILOVEYOU() { return Enemy("ILOVEYOU", 7500.0f, 0.5f, 500); }
+
 
 // pathIndex = 1 pentru ca pozitia 0 din path e startul, deja "atinsa".
 Enemy::Enemy(const std::string& name, float maxHealth, float speed, int reward)
@@ -94,6 +97,7 @@ bool Enemy::hasReachedEnd(const std::vector<std::pair<int, int>>& path) const {
 float Enemy::getX()             const { return x; }
 float Enemy::getY()             const { return y; }
 float Enemy::getCurrentHealth() const { return currentHealth; }
+float Enemy::getMaxHealth()     const { return maxHealth; }
 float Enemy::getEffectiveSpeed() const { return speed * slowFactor; }
 float Enemy::getVelocityX()     const { return vx; }
 float Enemy::getVelocityY()     const { return vy; }

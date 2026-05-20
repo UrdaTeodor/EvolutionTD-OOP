@@ -185,6 +185,19 @@ Wave Game::buildWave(int waveNum) {
             wave.addEnemy(makeWorm());
             wave.addEnemy(makeTrojan());
             break;
+        case 4:
+            for (int i = 0; i < 10; i++) {
+                wave.addEnemy(makeAdware());
+                wave.addEnemy(makeTrojan());
+            }
+            break;
+        case 5:
+            // BOSS WAVE: ILOVEYOU + spawn continuu de 50 worms
+            wave.addEnemy(makeILOVEYOU());
+            for (int i = 0; i < 50; i++) {
+                wave.addEnemy(makeWorm());
+            }
+            break;
         default: break;
     }
     return wave;
@@ -238,8 +251,40 @@ void Game::placeTower(int typeChoice, int col, int row) {
     refreshGrid();
 }
 
+// ---- Frame-by-frame API pentru SFML ----
+// runWave (mai jos) ruleaza un val in mod blocant (potrivit pentru terminal).
+// Pentru SFML avem nevoie sa controlam fiecare tick din game loop, deci spargem
+// logica in 4 metode pe care le poate apela SFMLRenderer.
+
+void Game::startWave() {
+    takeSnapshot();
+    currentWave = buildWave(waveNumber);
+}
+
+void Game::tickWave(float dt) {
+    if (!isWaveActive()) return;
+    int earned = 0;
+    int damage = currentWave.simulate(towers, path, dt, earned);
+    money    += earned;
+    playerHP -= damage;
+}
+
+bool Game::isWaveActive() const {
+    return !currentWave.allDefeated() && !isGameOver();
+}
+
+void Game::endWave() {
+    // venit pasiv polimorfic (BytecoinMinerTower returneaza 25, restul 0)
+    for (const auto& tower : towers) {
+        money += tower->collectIncome();
+    }
+    waveNumber++;
+}
+
 // Ruleaza valul curent: loop pe tick-uri pana cand toti inamicii sunt morti/scapati
-// sau jucatorul ramane fara HP.
+// sau jucatorul ramane fara HP. Pastrat pentru modul terminal/fallback - SFML loop
+// foloseste startWave/tickWave/endWave separat.
+// cppcheck-suppress unusedFunction
 void Game::runWave() {
     takeSnapshot();
 

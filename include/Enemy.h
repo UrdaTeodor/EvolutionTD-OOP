@@ -40,6 +40,7 @@ public:
     float getX() const;
     float getY() const;
     float getCurrentHealth() const;
+    float getMaxHealth() const;
     float getEffectiveSpeed() const;  // speed * slowFactor
     float getVelocityX() const;
     float getVelocityY() const;
@@ -54,3 +55,4 @@ public:
 Enemy makeAdware();
 Enemy makeTrojan();
 Enemy makeWorm();
+Enemy makeILOVEYOU();   // boss val 5

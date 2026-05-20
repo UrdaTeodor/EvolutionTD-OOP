@@ -4,6 +4,14 @@ description: 'Run dynamic analysis tools'
 runs:
   using: "composite"
   steps:
+    # SFML are nevoie de display pe Linux. CI headless => xvfb (virtual X server).
+    - name: Install xvfb for SFML
+      shell: bash
+      if: runner.os == 'Linux' && (matrix.runs_asan == true || matrix.runs_valgrind == true)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb
+
     - name: Sanitizers
       shell: bash
       # run one sanitizer for each env to avoid building extra binaries on one env
@@ -12,7 +20,11 @@ runs:
       # env:
       #   ASAN_OPTIONS: detect_leaks=1
       run: |
-        cat "${INPUT_FILENAME}" | tr -d '\r' | ./${{ env.ZIP_NAME }}/"${EXECUTABLE_NAME}"
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          xvfb-run -a bash -c 'cat "${INPUT_FILENAME}" | tr -d "\r" | ./${{ env.ZIP_NAME }}/"${EXECUTABLE_NAME}"'
+        else
+          cat "${INPUT_FILENAME}" | tr -d '\r' | ./${{ env.ZIP_NAME }}/"${EXECUTABLE_NAME}"
+        fi
 
     - name: Sanitizers (Windows MSVC)
       shell: bash
@@ -26,4 +38,4 @@ runs:
       shell: bash
       if: runner.os == 'Linux' && matrix.runs_valgrind == true
       run: |
-        bash ./scripts/run_valgrind.sh "${{ env.ZIP_NAME }}"
+        xvfb-run -a bash ./scripts/run_valgrind.sh "${{ env.ZIP_NAME }}"

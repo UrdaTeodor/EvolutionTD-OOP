@@ -8,7 +8,9 @@ runs:
       shell: bash
       run: |
         sudo apt-get update
-        sudo apt-get install --no-install-recommends clang-tidy-${{ env.CLANG_VER }} libc++-${{ env.CLANG_VER }}-dev libc++abi-${{ env.CLANG_VER }}-dev ninja-build
+        sudo apt-get install --no-install-recommends \
+          clang-tidy-${{ env.CLANG_VER }} libc++-${{ env.CLANG_VER }}-dev libc++abi-${{ env.CLANG_VER }}-dev ninja-build \
+          libgl1-mesa-dev libx11-dev libxrandr-dev libxcursor-dev libudev-dev libfreetype-dev libxi-dev libxinerama-dev
 
     - name: Configure CMake
       uses: ./.github/actions/configure-cmake
