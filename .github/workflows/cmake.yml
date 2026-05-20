@@ -31,6 +31,8 @@ env:
   BIN_DIR: "bin"       # update in cmake/Options.cmake:6 if changing name here
   BUILD_DIR: "build"
   EXT_DIR: "ext"
+  APP_WINDOW: "EvolutionTD"
+  SFML_VERSION: "2.6.1"
 
 
 defaults:

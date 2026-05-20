@@ -325,12 +325,6 @@ void runT2DemoTests() {
 int main() {
     runT2DemoTests();
 
-    // CI runners (GitHub Actions seteaza CI=true) nu au display si ar bloca pe SPACE/ESC.
-    if (std::getenv("CI") != nullptr) {
-        std::cout << "=== CI mode: skipping SFML window ===\n";
-        return 0;
-    }
-
     std::cout << "=== EvolutionTD: Digital Immune System (SFML) ===\n";
 
     sf::RenderWindow window(sf::VideoMode(WIN_W, WIN_H), "EvolutionTD", sf::Style::Fullscreen);
