@@ -3,20 +3,20 @@
 #include <memory>
 
 class HoneypotTower : public Tower {
-    // evo  flag
     bool biggerAura;
 
 public:
-    HoneypotTower(int col, int row);
+    HoneypotTower(const TowerSpec& spec, int col, int row);
 
-    void update(std::vector<Enemy>& enemies, float deltaTime) override;
+    void update(std::vector<Enemy>& enemies, float deltaTime,
+                const GlobalStatBuffs& buffs) override;
     char getDisplayChar() const override;
     std::unique_ptr<Tower> clone() const override;
 
-    void enableBiggerAura();
+    void applyAbility(AbilityType a) override;
 
 protected:
     void displayDetails(std::ostream& os) const override;
 };
 
-std::unique_ptr<Tower> makeHoneypot(int col, int row);
+std::unique_ptr<Tower> makeHoneypot(const TowerSpec& spec, int col, int row);

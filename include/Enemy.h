@@ -4,55 +4,47 @@
 #include <vector>
 #include <utility>
 
-// Diferenta intre Adware/Trojan/Worm e doar in NUMERE (HP, viteza, reward),
+struct EnemySpec;   // fwd
+
 class Enemy {
-    // toate atributele private = doar Enemy poate sa le modifice direct;
-    // restul codului trece prin metode publice (getteri, takeDamage, etc.)
     std::string name;
     float maxHealth;
     float currentHealth;
     float speed;
-    int reward;        // credits pe kill
-    int pathIndex;     // index pentru urmatorul waypoint din path
-    float x, y;        // pozitie curenta
-    float slowFactor;  // 1.0 = viteza normala, 0.8 = 20% mai lent
-    float vx, vy;      // viteza curenta
+    int reward;
+    int pathIndex;
+    float x, y;
+    float slowFactor;
+    float vx, vy;
 
     float distanceTo(float targetX, float targetY) const;
 
 public:
-    // constructor de initializare
+    // Constructor explicit (folosit momentan la testele T2 care creaza Enemy direct).
     Enemy(const std::string& name, float maxHealth, float speed, int reward);
 
-    // muta inamicul pe path
-    // Apelata din Wave::simulate (src/Wave.cpp).
+    // T3 constructor din spec
+    explicit Enemy(const EnemySpec& spec);
+
     void move(const std::vector<std::pair<int, int>>& path, float deltaTime);
 
-    void takeDamage(float damage);    // scade currentHealth
-    void applySlow(float factor);     // seteaza slowFactor (apelata din Honeypot)
-    void resetSlow();                 // slowFactor = 1.0
-    void placeAt(float startX, float startY);  // muta inamicul la startul path-ului
+    void takeDamage(float damage);
+    void applySlow(float factor);
+    void resetSlow();
+    void placeAt(float startX, float startY);
 
     bool isAlive() const;
     bool hasReachedEnd(const std::vector<std::pair<int, int>>& path) const;
-
 
     float getX() const;
     float getY() const;
     float getCurrentHealth() const;
     float getMaxHealth() const;
-    float getEffectiveSpeed() const;  // speed * slowFactor
+    float getEffectiveSpeed() const;
     float getVelocityX() const;
     float getVelocityY() const;
     const std::string& getName() const;
     int getReward() const;
 
-    // friend: operator<< poate accesa atributele private ale Enemy
     friend std::ostream& operator<<(std::ostream& os, const Enemy& e);
 };
-
-// factory free functions: construiesc Enemy cu stats hardcodate.
-Enemy makeAdware();
-Enemy makeTrojan();
-Enemy makeWorm();
-Enemy makeILOVEYOU();   // boss val 5

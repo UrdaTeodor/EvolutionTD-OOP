@@ -1,38 +1,55 @@
 #include "HoneypotTower.h"
+#include "GlobalStatBuffs.h"
+#include "GameException.h"
 #include <cmath>
 
-HoneypotTower::HoneypotTower(int col, int row)
-    : Tower("Honeypot", 30, col, row, 1.5f), biggerAura(false) {}
+HoneypotTower::HoneypotTower(const TowerSpec& spec, int col, int row)
+    : Tower(spec, "honeypot", col, row), biggerAura(false) {}
 
-std::unique_ptr<Tower> makeHoneypot(int col, int row) {
-    return std::make_unique<HoneypotTower>(col, row);
+std::unique_ptr<Tower> makeHoneypot(const TowerSpec& spec, int col, int row) {
+    return std::make_unique<HoneypotTower>(spec, col, row);
 }
 
-void HoneypotTower::update(std::vector<Enemy>& enemies, float /*deltaTime*/) {
+void HoneypotTower::update(std::vector<Enemy>& enemies, float /*deltaTime*/,
+                           const GlobalStatBuffs& buffs) {
+    // BiggerAura = +50% range (asta inca per-instance, buff global ar putea fi adaugat in shop)
+    float range = effectiveRange(buffs);
+    if (biggerAura) range *= 1.5f;
+
+    // slow factor: spec.slow_factor (base), buff global slow_pct scade factorul
+    float slow = spec().slow_factor;
+    float slow_pct = buffs.for_type(getTypeKey()).slow_pct;
+    slow = slow * (1.0f - slow_pct);
+    if (slow < 0.0f) slow = 0.0f;
+
     for (auto& enemy : enemies) {
         if (!enemy.isAlive()) continue;
         float dx = enemy.getX() - static_cast<float>(getX());
         float dy = enemy.getY() - static_cast<float>(getY());
         float dist = std::sqrt(dx * dx + dy * dy);
-        if (dist <= getRange()) {
-            enemy.applySlow(0.8f);  // -20% viteza
+        if (dist <= range) {
+            enemy.applySlow(slow);
         }
     }
 }
 
 char HoneypotTower::getDisplayChar() const { return 'H'; }
 
-// Virtual ctor: deep-copy polimorfic. cc implicit copiaza toti membrii (Tower + biggerAura).
 std::unique_ptr<Tower> HoneypotTower::clone() const {
     return std::make_unique<HoneypotTower>(*this);
 }
 
-void HoneypotTower::enableBiggerAura() {
-    biggerAura = true;
-    buffRange(0.5f);  // efect placeholder: +50% raza
+void HoneypotTower::applyAbility(AbilityType a) {
+    switch (a) {
+        case AbilityType::BIGGER_AURA: biggerAura = true; break;
+        case AbilityType::MOVABLE:     enableMovable();   break;
+        default:
+            Tower::applyAbility(a);
+    }
 }
 
 void HoneypotTower::displayDetails(std::ostream& os) const {
-    os << " slow:20% range:" << getRange();
+    os << " slow:" << static_cast<int>((1.0f - spec().slow_factor) * 100.0f) << "%"
+       << " range:" << spec().range;
     if (biggerAura) os << " [BiggerAura]";
 }

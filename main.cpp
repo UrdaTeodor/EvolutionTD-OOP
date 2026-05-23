@@ -11,7 +11,6 @@
 #include <SFML/Graphics.hpp>
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>      // std::getenv
 #include <iostream>
 #include <memory>
 #include <random>
@@ -24,6 +23,9 @@
 #include "EvolutionFactory.h"
 #include "AbilityEvolution.h"
 #include "AntivirusTower.h"
+#include "DataRegistry.h"
+#include "EvolutionContext.h"
+#include "GlobalStatBuffs.h"
 
 namespace {
 
@@ -273,18 +275,18 @@ void drawRangeCircle(sf::RenderWindow& window, sf::Vector2f center, float radius
 
 // Ruleaza inainte sa deschidem fereastra SFML. Output-ul ramane in consola
 // si poate fi citit dupa ce inchizi jocul cu ESC.
-void runT2DemoTests() {
+void runT2DemoTests(const DataRegistry& registry) {
     // Regula celor 3 pentru Wave (cc + op= + dtor implicit corect)
     {
         Wave w1(0, {});
-        w1.addEnemy(makeAdware());
+        w1.addEnemy(Enemy(registry.getEnemy("adware")));
 
         Wave w2 = w1;
-        w2.addEnemy(makeTrojan());
+        w2.addEnemy(Enemy(registry.getEnemy("trojan")));
 
         Wave w3(0, {});
         w3 = w1;
-        w3.addEnemy(makeWorm());
+        w3.addEnemy(Enemy(registry.getEnemy("worm")));
 
         std::cout << "=== Test Regula celor 3 ===\n";
         std::cout << "w1 original (1 inamic):         " << w1;
@@ -294,7 +296,7 @@ void runT2DemoTests() {
     }
 
     // Ierarhia proprie de exceptii (3 derivate prinse prin baza GameException)
-    std::cout << "=== Test excepții (GameException + 3 derivate) ===\n";
+    std::cout << "=== Test excepții (GameException + 4 derivate) ===\n";
 
     try {
         auto a = std::make_unique<AbilityEvolution>(
@@ -310,10 +312,13 @@ void runT2DemoTests() {
     }
 
     try {
-        AntivirusTower anti(0, 0);
+        // T3: testul de incompatibilitate trece prin Tower::applyAbility (virtual)
+        AntivirusTower anti(registry.getTower("antivirus"), 0, 0);
         AbilityEvolution wrong("EpicBiggerAura", 100, Evolution::Rarity::EPIC,
                                AbilityEvolution::AbilityType::BIGGER_AURA);
-        wrong.apply(anti);
+        GlobalStatBuffs dummyBuffs;
+        EvolutionContext ctx{&dummyBuffs, "antivirus", &anti};
+        wrong.apply(ctx);
         std::cout << "  [BUG] throw\n";
     } catch (const GameException& err) {
         std::cout << "  [ok] prins GameException: " << err.what() << "\n";
@@ -323,7 +328,16 @@ void runT2DemoTests() {
 } 
 
 int main() {
-    runT2DemoTests();
+    // T3: incarca toate fisierele JSON din data/ inainte sa cream Game.
+    DataRegistry registry;
+    try {
+        registry.loadAll("data");
+    } catch (const GameException& err) {
+        std::cerr << "Eroare la incarcare date: " << err.what() << "\n";
+        return 1;
+    }
+
+    runT2DemoTests(registry);
 
     std::cout << "=== EvolutionTD: Digital Immune System (SFML) ===\n";
 
@@ -337,7 +351,7 @@ int main() {
     Sprites sprites;
     sprites.load();
 
-    Game game;
+    Game game(registry);
 
     sf::RectangleShape uiLeft(sf::Vector2f(GRID_X, WIN_H));
     uiLeft.setFillColor(sf::Color(40, 40, 55));
@@ -673,8 +687,8 @@ int main() {
         if (hasFont) {
             hpText.setString("HP:     " + std::to_string(game.getPlayerHP()));
             moneyText.setString("$:      " + std::to_string(game.getMoney()));
-            waveText.setString("Wave:   " + std::to_string(std::min(game.getWaveNumber(), Game::getMaxWaves()))
-                                          + "/" + std::to_string(Game::getMaxWaves()));
+            waveText.setString("Wave:   " + std::to_string(std::min(game.getWaveNumber(), game.getMaxWaves()))
+                                          + "/" + std::to_string(game.getMaxWaves()));
 
             std::string status;
             if (game.isGameOver())         status = "GAME OVER (ESC)";

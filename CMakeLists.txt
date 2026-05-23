@@ -44,6 +44,19 @@ FetchContent_Declare(SFML
 
 FetchContent_MakeAvailable(SFML)
 
+# nlohmann/json 3.11.3 (header-only) pentru parsare fisiere de date JSON (T3).
+# JSON_BuildTests off ca sa nu compileze test suite-ul lor.
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+FetchContent_Declare(json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        v3.11.3
+    GIT_SHALLOW    1
+    GIT_PROGRESS   ON
+    SYSTEM
+)
+
+FetchContent_MakeAvailable(json)
+
 ###############################################################################
 
 # external dependencies with find_package
@@ -72,6 +85,8 @@ target_sources(${MAIN_EXECUTABLE_NAME}
         src/AbilityEvolution.cpp
         src/MythicEvolution.cpp
         src/EvolutionFactory.cpp
+        src/DataRegistry.cpp
+        src/Director.cpp
 )
 
 # NOTE: Add all defined targets (e.g. executables, libraries, etc. )
@@ -104,7 +119,7 @@ if(APPLE)
 endif()
 
 
-copy_files(FILES tastatura.txt DIRECTORY assets COPY_TO_DESTINATION TARGET_NAME ${MAIN_EXECUTABLE_NAME})
+copy_files(FILES tastatura.txt DIRECTORY assets data COPY_TO_DESTINATION TARGET_NAME ${MAIN_EXECUTABLE_NAME})
 
 
-target_link_libraries(${MAIN_EXECUTABLE_NAME} PRIVATE sfml-graphics sfml-window sfml-system)
+target_link_libraries(${MAIN_EXECUTABLE_NAME} PRIVATE sfml-graphics sfml-window sfml-system nlohmann_json::nlohmann_json)

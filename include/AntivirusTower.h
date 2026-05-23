@@ -4,41 +4,34 @@
 #include <utility>
 
 class AntivirusTower : public Tower {
-    float damage;
-    float attackSpeed;
-    float projectileSpeed;
-    float attackCooldown;
 
-    // evo flags
     bool doubleShot;
     bool fireTrail;
     bool multiTarget;
-    int knockbackInterval;    // 0 = off, N = la fiecare al N-lea shot
-    int shotCounter;          // contor pentru knockback periodic
+    int  knockbackInterval;   // 0 = off, N = la fiecare al N-lea shot
+    int  shotCounter;
+    float attackCooldown;     // timer interior
 
-    bool isInRange(const Enemy& enemy) const;
+    bool isInRange(const Enemy& enemy, float effectiveRange) const;
     void attackEnemy(Enemy& enemy);
     std::pair<float, float> calculateInterceptPoint(const Enemy& enemy) const;
 
 public:
-    AntivirusTower(int col, int row);
+    AntivirusTower(const TowerSpec& spec, int col, int row);
 
-    void update(std::vector<Enemy>& enemies, float deltaTime) override;
+    void update(std::vector<Enemy>& enemies, float deltaTime,
+                const GlobalStatBuffs& buffs) override;
     char getDisplayChar() const override;
     std::unique_ptr<Tower> clone() const override;
 
-    // evo buffs cu dynamic cast)
-    void buffDamage(float pct);
-    void buffAttackSpeed(float pct);
+    // T3 refactor: dynamic_cast in AbilityEvolution dispare pentru majoritatea evo-urilor;
+    // Tower decide singur ce suporta(exceptie KNOCKBACK_EVERY_3)
+    void applyAbility(AbilityType a) override;
 
-    // evo buffs
-    void enableDoubleShot();
-    void enableFireTrail();
-    void enableMultiTarget();
-    void enableKnockback(int interval);
+    void setKnockbackInterval(int N);
 
 protected:
     void displayDetails(std::ostream& os) const override;
 };
 
-std::unique_ptr<Tower> makeAntivirus(int col, int row);
+std::unique_ptr<Tower> makeAntivirus(const TowerSpec& spec, int col, int row);

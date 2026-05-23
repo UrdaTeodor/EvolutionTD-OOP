@@ -31,3 +31,10 @@ class IncompatibleEvolutionException : public GameException {
 public:
     using GameException::GameException;
 };
+
+
+// Aruncata de DataRegistry cand JSON-ul lipseste, e malformat sau o cheie nu exista.
+class DataException : public GameException {
+public:
+    using GameException::GameException;
+};

@@ -2,53 +2,64 @@
 #include <string>
 #include <ostream>
 #include <vector>
-#include <memory> 
+#include <memory>
 #include "Enemy.h"
+#include "AbilityType.h"
+#include "TowerSpec.h"
+
+class GlobalStatBuffs;   // forward decl, definit in GlobalStatBuffs.h
 
 // Tower e clasa de baza abstracta pentru toate tipurile de turnuri.
+// Refactor T3 stats vin din TowerSpec (citit din JSON);
+// instanta retine doar pozitia, evo flags si pointer la spec.
 class Tower {
-    std::string name;
-    int cost;
-    int x, y;        
-    float range;     
-
-
-    bool movable;
+    const TowerSpec* spec_;   
+    std::string      type_key_;  // ex. "antivirus" - cheia in DataRegistry + GlobalStatBuffs
+    int   x_;
+    int   y_;
+    bool  movable_;
 
 public:
-    Tower(const std::string& name, int cost, int x, int y, float range);
+    Tower(const TowerSpec& spec, std::string type_key, int x, int y);
     virtual ~Tower() = default;
 
-    virtual void update(std::vector<Enemy>& enemies, float deltaTime) = 0;
+    // Theme-specific: logica de atac. Buffs accumulator pass per call (T3 design).
+    virtual void update(std::vector<Enemy>& enemies, float deltaTime,
+                        const GlobalStatBuffs& buffs) = 0;
     virtual char getDisplayChar() const = 0;
 
-    // Necesar pt cc/op= din Game, care detine vector<unique_ptr<Tower>>.
-    // Fiecare derivata returneaza make_unique<XxxTower>(*this)
+    // Virtual constructor 
     virtual std::unique_ptr<Tower> clone() const = 0;
 
-    // doar FirewallTower returneaza true
-    virtual bool requiresPath() const;
 
-    // BytecoinMinerTower returneaza un venit pasiv (25) la finalul fiecarui val.
-    virtual int collectIncome() { return 0; }
+    // Default = arunca IncompatibleEvolutionException 
+    // Fiecare derivata override pentru ability-urile ei concrete.
+    virtual void applyAbility(AbilityType a);
 
+    // BytecoinMinerTower returneaza venit pasiv (cu buff income aplicat).
+    virtual int collectIncome(const GlobalStatBuffs& buffs) const;
 
-    // Derivatele pot suprascrie daca au logica speciala (ex. Firewall nu beneficiaza).
-    virtual void buffRange(float pct);
+    // Citita din spec (nu mai e virtual override pe derivata).
+    bool requiresPath() const;
 
-    // ability MOVABLE: setata din AbilityEvolution; e gratuita pentru toate turnurile.
+    // Ability MOVABLE: setata din applyAbility(MOVABLE)
     void enableMovable();
     bool isMovable() const;
 
     int getX() const;
     int getY() const;
     int getCost() const;
-    float getRange() const;
+    float getRange() const;                   
     const std::string& getName() const;
+    const std::string& getTypeKey() const;
+    const TowerSpec& spec() const;
+
+    // Range efectiv cu buff range_pct aplicat. Foloseste in isInRange din derivate.
+    float effectiveRange(const GlobalStatBuffs& buffs) const;
 
     friend std::ostream& operator<<(std::ostream& os, const Tower& t);
 
 protected:
-    // NVI: derivatele suprascriu doar partea de detalii specifice
+    // NVI: derivatele suprascriu partea specifica
     virtual void displayDetails(std::ostream& os) const = 0;
 };

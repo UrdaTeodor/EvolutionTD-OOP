@@ -6,6 +6,8 @@
 #include "Enemy.h"
 #include "Tower.h"
 
+class GlobalStatBuffs;   // forward decl
+
 class Wave {
     std::vector<Enemy> activeEnemies;   
     std::vector<Enemy> pendingEnemies; 
@@ -30,7 +32,8 @@ public:
     int simulate(std::vector<std::unique_ptr<Tower>>& towers,
                  const std::vector<std::pair<int, int>>& path,
                  float deltaTime,
-                 int& moneyEarned);
+                 int& moneyEarned,
+                 const GlobalStatBuffs& buffs);
 
     void addEnemy(const Enemy& enemy);          // adauga in pendingEnemies
     bool allDefeated() const;                   // true daca nu mai e nimic de procesat

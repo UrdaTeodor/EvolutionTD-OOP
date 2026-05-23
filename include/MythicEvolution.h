@@ -39,7 +39,7 @@ public:
     MythicEvolution& operator=(MythicEvolution&&) noexcept = default;
     ~MythicEvolution() override = default;
 
-    void apply(Tower& target) override;
+    void apply(const EvolutionContext& ctx) override;
     std::unique_ptr<Evolution> clone() const override;
 
     MythicType getMythicType() const;

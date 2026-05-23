@@ -1,0 +1,52 @@
+{
+  "antivirus": {
+    "display_name": "PrimitiveAV",
+    "cost": 50,
+    "range": 4.0,
+    "damage": 25.0,
+    "attack_speed": 1.0,
+    "projectile_speed": 8.0,
+    "requires_path": false,
+    "supports_abilities": ["MULTI_TARGET", "DOUBLE_SHOT", "FIRE_TRAIL", "KNOCKBACK_EVERY_3", "MOVABLE"]
+  },
+
+  "adblocker": {
+    "display_name": "Adblocker",
+    "cost": 40,
+    "range": 3.0,
+    "damage": 8.0,
+    "attack_speed": 4.0,
+    "projectile_speed": 10.0,
+    "requires_path": false,
+    "supports_abilities": ["MULTI_TARGET", "DOUBLE_SHOT", "FIRE_TRAIL", "KNOCKBACK_EVERY_3", "MOVABLE"]
+  },
+
+  "honeypot": {
+    "display_name": "Honeypot",
+    "cost": 30,
+    "range": 1.5,
+    "slow_factor": 0.8,
+    "requires_path": false,
+    "supports_abilities": ["BIGGER_AURA", "MOVABLE"]
+  },
+
+  "firewall": {
+    "display_name": "Firewall",
+    "cost": 60,
+    "range": 0.0,
+    "max_hp": 80.0,
+    "regen_rate": 5.0,
+    "block_radius": 0.6,
+    "requires_path": true,
+    "supports_abilities": ["ARMORED", "REFLECTIVE_SHIELD", "MOVABLE"]
+  },
+
+  "bytecoinminer": {
+    "display_name": "BytecoinMiner",
+    "cost": 50,
+    "range": 0.0,
+    "income_per_wave": 15,
+    "requires_path": false,
+    "supports_abilities": ["MOVABLE"]
+  }
+}

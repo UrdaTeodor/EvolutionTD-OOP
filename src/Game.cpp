@@ -5,38 +5,72 @@
 #include "HoneypotTower.h"
 #include "FirewallTower.h"
 #include "BytecoinMinerTower.h"
+#include "DataRegistry.h"
 #include "GameException.h"
 #include <iostream>
-#include <iomanip>     
-#include <cmath>       
-#include <algorithm>   
-#include <string>      
+#include <iomanip>
+#include <cmath>
+#include <algorithm>
+#include <string>
+
+namespace {
+    // Lookup wave_id pentru indexul waveNumber (1-based).
+    const std::string& waveIdFor(const MapSpec& map, int waveNumber) {
+        if (waveNumber < 1 || waveNumber > static_cast<int>(map.wave_ids.size())) {
+            throw DataException("waveNumber " + std::to_string(waveNumber) +
+                                " in afara range pentru map '" + map.name + "'");
+        }
+        return map.wave_ids[waveNumber - 1];
+    }
+}
 
 // ---- constructor ----
 
-Game::Game()
-    : currentWave(0, {}), // val initial temporar
-      playerHP(STARTING_HP), money(STARTING_MONEY), waveNumber(1) {
+Game::Game(const DataRegistry& registry, const std::string& map_id)
+    : registry_(&registry),
+      current_map_id_(map_id),
+      max_waves_(0),
+      starting_hp_(0),
+      starting_money_(0),
+      buffs_(),
+      rng_(std::random_device{}()),     // default seed (random); save_load suprascrie
+      director_(rng_),
+      currentWave(0, {}),
+      playerHP(0), money(0), waveNumber(1) {
+    const MapSpec& map = registry_->getMap(map_id);
+    max_waves_      = static_cast<int>(map.wave_ids.size());
+    starting_hp_    = map.start_hp;
+    starting_money_ = map.start_money;
+    playerHP        = starting_hp_;
+    money           = starting_money_;
+
     for (int row = 0; row < GRID_SIZE; row++) {
         for (int col = 0; col < GRID_SIZE; col++) {
             grid[row][col]     = '.';
             pathGrid[row][col] = false;
         }
     }
+    path = map.path;
     initPath();
     refreshGrid();
 }
 
-// Constructor de COPIERE (polimorfic)
-// Game detine vector<unique_ptr<Tower>>: cc-ul implicit ar fi sters (unique_ptr).
-// Aici facem manual deep-copy clonand fiecare turn cu Tower::clone() (apel polimorfic
-// prin pointer la baza -> returneaza unique_ptr<Tower> de tipul concret corect).
 Game::Game(const Game& other)
-    : currentWave(other.currentWave),
+    : registry_(other.registry_),
+      current_map_id_(other.current_map_id_),
+      max_waves_(other.max_waves_),
+      starting_hp_(other.starting_hp_),
+      starting_money_(other.starting_money_),
+      buffs_(other.buffs_),
+      rng_(other.rng_),               // copiaza state-ul RNG (reproducible)
+      director_(other.director_),     // copy default pool_ + rng_ pointer 
+      currentWave(other.currentWave),
+      path(other.path),
       playerHP(other.playerHP), money(other.money), waveNumber(other.waveNumber)
-      // snapshot_ ramane nullptr 
 {
-    // grid si pathGrid: initPath() le reconstruieste din hardcoded path.
+    // Director.rng_ pointer din other puncteaza la &other.rng_
+    director_.setRng(rng_);
+
     for (int row = 0; row < GRID_SIZE; row++) {
         for (int col = 0; col < GRID_SIZE; col++) {
             grid[row][col]     = '.';
@@ -50,42 +84,43 @@ Game::Game(const Game& other)
         towers.push_back(t->clone());
     }
 
-    refreshGrid();   
+    refreshGrid();
 }
 
-// Operator= cu copy-and-swap 
-// Param by-value -> cc-ul s-a apelat deja inainte sa intram in functie.
-// Singura operatiune ramasa e swap-ul, care e noexcept
 Game& Game::operator=(Game other) {
     swap(*this, other);
-    refreshGrid();  
+    refreshGrid();
     return *this;
 }
 
-// Destructor explicit
-// Necesar pt ca avem unique_ptr<Game> snapshot_ self-referential:
 Game::~Game() = default;
 
-// Friend swap 
-// nu swap-uim: snapshot_ , grid , pathGrid si path .
 void swap(Game& a, Game& b) noexcept {
     using std::swap;
+    swap(a.registry_,       b.registry_);
+    swap(a.current_map_id_, b.current_map_id_);
+    swap(a.max_waves_,      b.max_waves_);
+    swap(a.starting_hp_,    b.starting_hp_);
+    swap(a.starting_money_, b.starting_money_);
+    swap(a.buffs_,          b.buffs_);
+    swap(a.rng_,            b.rng_);
+    swap(a.director_,       b.director_);
+    // Director.rng_ pointer-ul s-a swap-uit gresit (pointeaza la celalalt Game)
+    a.director_.setRng(a.rng_);
+    b.director_.setRng(b.rng_);
+
     swap(a.towers,      b.towers);
     swap(a.currentWave, b.currentWave);
+    swap(a.path,        b.path);
     swap(a.playerHP,    b.playerHP);
     swap(a.money,       b.money);
     swap(a.waveNumber,  b.waveNumber);
 }
 
-// Snapshot / restore 
-// takeSnapshot: salvam o copie a *this. Folosim cc-ul nostru (deep-copy prin clone()).
-// snapshot_-ul copiei va fi nullptr (cc-ul nu copiaza snapshot_).
 void Game::takeSnapshot() {
     snapshot_ = std::make_unique<Game>(*this);
 }
 
-// restoreSnapshot: reincarcam state-ul din snapshot prin op=.
-// dupa restore undo se poate aplica de cate ori vrem.
 bool Game::restoreSnapshot() {
     if (!snapshot_) return false;
     *this = *snapshot_;
@@ -94,17 +129,13 @@ bool Game::restoreSnapshot() {
 
 // ---- private helpers ----
 
-// Drum: (linie, coloana). Segmentele sunt paralele cu axele.
-// (5,0) -> (5,10) -> (14,10) -> (14,19)
+// path-ul vine acum din MapSpec; ce face initPath e construirea pathGrid.
 void Game::initPath() {
-    path = {{5,0}, {5,10}, {14,10}, {14,19}};
-
     for (int i = 0; i < static_cast<int>(path.size()) - 1; i++) {
         int row1 = path[i].first,   col1 = path[i].second;
         int row2 = path[i+1].first, col2 = path[i+1].second;
 
         if (row1 == row2) {
-            
             for (int col = std::min(col1, col2); col <= std::max(col1, col2); col++) {
                 pathGrid[row1][col] = true;
             }
@@ -126,12 +157,9 @@ void Game::refreshGrid() {
             }
         }
     }
-    // strat 2: turnurile. APEL POLIMORFIC: tower->getDisplayChar() cheama varianta
-    // corecta in functie de tipul concret ('A' pt Antivirus, 'F' pt Firewall, etc.)
     for (const auto& tower : towers) {
         grid[tower->getY()][tower->getX()] = tower->getDisplayChar();
     }
-    // strat 3: inamicii (suprascriu tot)
     for (const auto& enemy : currentWave.getActiveEnemies()) {
         if (!enemy.isAlive()) continue;
         int col = static_cast<int>(std::round(enemy.getX()));
@@ -146,8 +174,6 @@ bool Game::isPathCell(int col, int row) const {
     return pathGrid[row][col];
 }
 
-// Itereaza prin turnuri si verifica daca exista deja unul la (col, row).
-// tower-> pentru ca elementele din vector sunt unique_ptr<Tower>.
 bool Game::isOccupied(int col, int row) const {
     for (const auto& tower : towers) {
         if (tower->getX() == col && tower->getY() == row) return true;
@@ -155,7 +181,6 @@ bool Game::isOccupied(int col, int row) const {
     return false;
 }
 
-// Verifica plasarea: in grid, neocupat, si pe path (sau in afara) in functie de needsPath.
 bool Game::isValidPlacement(int col, int row, bool needsPath) const {
     if (col < 0 || col >= GRID_SIZE || row < 0 || row >= GRID_SIZE) return false;
     if (isOccupied(col, row)) return false;
@@ -164,65 +189,56 @@ bool Game::isValidPlacement(int col, int row, bool needsPath) const {
 }
 
 
+// intro hardcodat din WaveSpec + Director procedural.
 Wave Game::buildWave(int waveNum) {
+    const MapSpec&  map  = registry_->getMap(current_map_id_);
+    const WaveSpec& wave_spec = registry_->getWave(waveIdFor(map, waveNum));
+
     Wave wave(waveNum, {});
-    switch (waveNum) {
-        case 1:
-            wave.addEnemy(makeAdware());
-            wave.addEnemy(makeAdware());
-            wave.addEnemy(makeAdware());
-            break;
-        case 2:
-            wave.addEnemy(makeAdware());
-            wave.addEnemy(makeAdware());
-            wave.addEnemy(makeTrojan());
-            wave.addEnemy(makeTrojan());
-            break;
-        case 3:
-            // worm: momentan HP mic + viteza mare, in viitor va da split in 2 cand moare
-            wave.addEnemy(makeWorm());
-            wave.addEnemy(makeWorm());
-            wave.addEnemy(makeWorm());
-            wave.addEnemy(makeTrojan());
-            break;
-        case 4:
-            for (int i = 0; i < 10; i++) {
-                wave.addEnemy(makeAdware());
-                wave.addEnemy(makeTrojan());
-            }
-            break;
-        case 5:
-            // BOSS WAVE: ILOVEYOU + spawn continuu de 50 worms
-            wave.addEnemy(makeILOVEYOU());
-            for (int i = 0; i < 50; i++) {
-                wave.addEnemy(makeWorm());
-            }
-            break;
-        default: break;
+
+    //  intro din JSON
+    for (const auto& key : wave_spec.intro) {
+        wave.addEnemy(Enemy(registry_->getEnemy(key)));
     }
+
+    //  Director: spawnari random ponderate (din buget)
+    auto spawns = director_.generateSpawns(wave_spec.base_budget);
+    for (const auto& spec : spawns) {
+        wave.addEnemy(Enemy(spec));
+    }
+
     return wave;
 }
 
-// Cumpara si plaseaza un turn de tipul typeChoice la (col, row).
-// exceptii :
-//   - InvalidPlacementException pentru orice eroare de plasare
-//   - InsufficientFundsException cand nu ai destui credit
+void Game::applyWaveUnlocks(int waveNum) {
+    const MapSpec&  map = registry_->getMap(current_map_id_);
+    if (waveNum < 1 || waveNum > static_cast<int>(map.wave_ids.size())) return;
+    const WaveSpec& wave_spec = registry_->getWave(waveIdFor(map, waveNum));
+    for (const auto& key : wave_spec.unlocks_after) {
+        director_.unlock(key, registry_->getEnemy(key));
+    }
+}
+
 void Game::placeTower(int typeChoice, int col, int row) {
-    // construim turnul prin factory (returneaza unique_ptr<Tower>).
-    // Daca aruncam exceptie dupa, unique_ptr-ul iese din scope si turnul se sterge
+    static const char* keys[] = {
+        "antivirus", "adblocker", "honeypot", "firewall", "bytecoinminer"
+    };
+    if (typeChoice < 1 || typeChoice > 5) {
+        throw InvalidPlacementException(
+            "Tip turn invalid: " + std::to_string(typeChoice) + " (alege 1-5)");
+    }
+    const std::string& key = keys[typeChoice - 1];
+    const TowerSpec& spec = registry_->getTower(key);
+
     std::unique_ptr<Tower> newTower;
     switch (typeChoice) {
-        case 1: newTower = makeAntivirus(col, row); break;   // -> AntivirusTower.cpp
-        case 2: newTower = makeAdblocker(col, row); break;   // -> AdblockerTower.cpp
-        case 3: newTower = makeHoneypot(col, row);  break;   // -> HoneypotTower.cpp
-        case 4: newTower = makeFirewall(col, row);  break;   // -> FirewallTower.cpp
-        case 5: newTower = makeBytecoinMiner(col, row); break; // -> BytecoinMinerTower.cpp
-        default:
-            throw InvalidPlacementException(
-                "Tip turn invalid: " + std::to_string(typeChoice) + " (alege 1-5)");
+        case 1: newTower = makeAntivirus(spec, col, row); break;
+        case 2: newTower = makeAdblocker(spec, col, row); break;
+        case 3: newTower = makeHoneypot(spec, col, row);  break;
+        case 4: newTower = makeFirewall(spec, col, row);  break;
+        case 5: newTower = makeBytecoinMiner(spec, col, row); break;
     }
 
-    // Apel polymorphic: requiresPath() returneaza true doar pt FirewallTower.
     bool needsPath = newTower->requiresPath();
 
     if (!isValidPlacement(col, row, needsPath)) {
@@ -246,15 +262,9 @@ void Game::placeTower(int typeChoice, int col, int row) {
     money -= towerCost;
     std::cout << "Placed " << newTower->getName()
               << " at (row=" << row << ", col=" << col << ") for " << towerCost << " credits.\n";
-    // std::move = transferam proprietatea unique_ptr-ului catre vector.
     towers.push_back(std::move(newTower));
     refreshGrid();
 }
-
-// ---- Frame-by-frame API pentru SFML ----
-// runWave (mai jos) ruleaza un val in mod blocant (potrivit pentru terminal).
-// Pentru SFML avem nevoie sa controlam fiecare tick din game loop, deci spargem
-// logica in 4 metode pe care le poate apela SFMLRenderer.
 
 void Game::startWave() {
     takeSnapshot();
@@ -264,7 +274,7 @@ void Game::startWave() {
 void Game::tickWave(float dt) {
     if (!isWaveActive()) return;
     int earned = 0;
-    int damage = currentWave.simulate(towers, path, dt, earned);
+    int damage = currentWave.simulate(towers, path, dt, earned, buffs_);
     money    += earned;
     playerHP -= damage;
 }
@@ -274,33 +284,31 @@ bool Game::isWaveActive() const {
 }
 
 void Game::endWave() {
-    // venit pasiv polimorfic (BytecoinMinerTower returneaza 25, restul 0)
+    // venit pasiv (Miner returneaza income, restul 0)
     for (const auto& tower : towers) {
-        money += tower->collectIncome();
+        money += tower->collectIncome(buffs_);
     }
+    // Aplica unlocks din WaveSpec pentru wave
+    applyWaveUnlocks(waveNumber);
     waveNumber++;
 }
 
-// Ruleaza valul curent: loop pe tick-uri pana cand toti inamicii sunt morti/scapati
-// sau jucatorul ramane fara HP. Pastrat pentru modul terminal/fallback - SFML loop
-// foloseste startWave/tickWave/endWave separat.
 // cppcheck-suppress unusedFunction
 void Game::runWave() {
     takeSnapshot();
-
     currentWave = buildWave(waveNumber);
 
     std::cout << "\n=== WAVE " << waveNumber << " starting ===\n";
     std::cout << currentWave;
 
-    constexpr float DT           = 0.1f;  // pasul de simulare in secunde
-    constexpr float PRINT_EVERY  = 2.0f;  // afisam grila din N in N secunde
-    float timeSincePrint = PRINT_EVERY;   // afisam imediat la prima iteratie
-    int   safetyLimit    = 5000;          // numar maxim de tick-uri (~500 secunde) pentru a preveni o bucla infinita
+    constexpr float DT           = 0.1f;
+    constexpr float PRINT_EVERY  = 2.0f;
+    float timeSincePrint = PRINT_EVERY;
+    int   safetyLimit    = 5000;
 
     for (int tick = 0; tick < safetyLimit && !currentWave.allDefeated() && !isGameOver(); tick++) {
         int earned = 0;
-        int damage = currentWave.simulate(towers, path, DT, earned);
+        int damage = currentWave.simulate(towers, path, DT, earned, buffs_);
 
         if (earned > 0) {
             money    += earned;
@@ -321,10 +329,8 @@ void Game::runWave() {
     displayGrid();
     std::cout << "\n=== WAVE " << waveNumber << " complete ===\n";
 
-    // APEL POLIMORFIC: collectIncome() returneaza 25 doar pentru BytecoinMinerTower,
-    // 0 pentru restul (default in Tower::collectIncome). Game nu trebuie sa stie tipul concret.
     for (const auto& tower : towers) {
-        int income = tower->collectIncome();
+        int income = tower->collectIncome(buffs_);
         if (income > 0) {
             money += income;
             std::cout << "  >> " << tower->getName() << " mined +" << income
@@ -333,17 +339,16 @@ void Game::runWave() {
     }
 
     std::cout << *this;
+    applyWaveUnlocks(waveNumber);
     waveNumber++;
 }
 
 void Game::displayGrid() const {
-    // Antet coloana
     std::cout << "\n   ";
     for (int col = 0; col < GRID_SIZE; col++) {
         std::cout << (col % 10);
     }
     std::cout << "\n";
-    // Linii
     for (int row = 0; row < GRID_SIZE; row++) {
         std::cout << std::setw(2) << row << " ";
         for (int col = 0; col < GRID_SIZE; col++) {
@@ -359,16 +364,14 @@ bool Game::isGameOver() const {
 }
 
 bool Game::allWavesDone() const {
-    return waveNumber > MAX_WAVES;
+    return waveNumber > max_waves_;
 }
 
-// Friend operator<<: afiseaza statusul jocului (HP, bani, val curent).
 std::ostream& operator<<(std::ostream& os, const Game& g) {
-    // limitam display-ul la MAX_WAVES (ca sa nu apara "4/3" cand am terminat valul 3)
-    int displayWave = g.waveNumber <= Game::MAX_WAVES ? g.waveNumber : Game::MAX_WAVES;
+    int displayWave = g.waveNumber <= g.max_waves_ ? g.waveNumber : g.max_waves_;
     os << "[ System HP: " << g.playerHP
        << " | Credits: " << g.money
-       << " | Wave: " << displayWave << "/" << Game::MAX_WAVES
+       << " | Wave: " << displayWave << "/" << g.max_waves_
        << " | Enemies on field: " << g.currentWave.activeCount() << " ]\n";
     return os;
 }

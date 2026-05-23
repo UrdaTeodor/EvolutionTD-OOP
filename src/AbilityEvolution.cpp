@@ -1,8 +1,7 @@
 #include "AbilityEvolution.h"
+#include "Tower.h"
 #include "AntivirusTower.h"
 #include "AdblockerTower.h"
-#include "FirewallTower.h"
-#include "HoneypotTower.h"
 #include "GameException.h"
 #include <algorithm>   // std::minmax
 #include <utility>
@@ -11,57 +10,30 @@ AbilityEvolution::AbilityEvolution(std::string name, int cost, Rarity rarity, Ab
     : Evolution(std::move(name), cost, rarity), ability(ability) {}
 
 
-// switch pe enum decide CE abilitate; dynamic_cast verifica DACA turnul o suporta.
-// Daca turnul NU suporta abilitatea -> IncompatibleEvolutionException
-void AbilityEvolution::apply(Tower& target) {
-    switch (ability) {
-        // ---- Epic ----
-        case AbilityType::MULTI_TARGET:
-            if (auto* anti = dynamic_cast<AntivirusTower*>(&target))      anti->enableMultiTarget();
-            else if (auto* adb = dynamic_cast<AdblockerTower*>(&target)) adb->enableMultiTarget();
-            else throw IncompatibleEvolutionException(
-                "MultiTarget: doar Antivirus si Adblocker accepta aceasta abilitate");
-            break;
-        case AbilityType::BIGGER_AURA:
-            if (auto* hp = dynamic_cast<HoneypotTower*>(&target))        hp->enableBiggerAura();
-            else throw IncompatibleEvolutionException(
-                "BiggerAura: doar Honeypot accepta aceasta abilitate");
-            break;
-        case AbilityType::ARMORED:
-            if (auto* fw = dynamic_cast<FirewallTower*>(&target))        fw->enableArmored();
-            else throw IncompatibleEvolutionException(
-                "Armored: doar Firewall accepta aceasta abilitate");
-            break;
+// T3 refactor: majoritatea ability-urilor merg virtual  (Tower::applyAbility override pe derivate).
+//dynamic_cast ca sa apelam setter-ul concret pe Antivirus/Adblocker (singurele care suporta knockback).
 
-        // ---- Legendary ----
-        case AbilityType::DOUBLE_SHOT:
-            if (auto* anti = dynamic_cast<AntivirusTower*>(&target))      anti->enableDoubleShot();
-            else if (auto* adb = dynamic_cast<AdblockerTower*>(&target)) adb->enableDoubleShot();
-            else throw IncompatibleEvolutionException(
-                "DoubleShot: doar Antivirus si Adblocker accepta aceasta abilitate");
-            break;
-        case AbilityType::FIRE_TRAIL:
-            if (auto* anti = dynamic_cast<AntivirusTower*>(&target))      anti->enableFireTrail();
-            else if (auto* adb = dynamic_cast<AdblockerTower*>(&target)) adb->enableFireTrail();
-            else throw IncompatibleEvolutionException(
-                "FireTrail: doar Antivirus si Adblocker accepta aceasta abilitate");
-            break;
-        case AbilityType::KNOCKBACK_EVERY_3:
-            if (auto* anti = dynamic_cast<AntivirusTower*>(&target))      anti->enableKnockback(3);
-            else if (auto* adb = dynamic_cast<AdblockerTower*>(&target)) adb->enableKnockback(3);
-            else throw IncompatibleEvolutionException(
-                "Knockback: doar Antivirus si Adblocker accepta aceasta abilitate");
-            break;
-        case AbilityType::REFLECTIVE_SHIELD:
-            if (auto* fw = dynamic_cast<FirewallTower*>(&target))        fw->enableReflectiveShield();
-            else throw IncompatibleEvolutionException(
-                "ReflectiveShield: doar Firewall accepta aceasta abilitate");
-            break;
-        case AbilityType::MOVABLE:
-            //orice turn poate fi movable
-            target.enableMovable();
-            break;
+void AbilityEvolution::apply(const EvolutionContext& ctx) {
+    if (!ctx.target_tower) {
+        throw IncompatibleEvolutionException(
+            "AbilityEvolution.apply: invalid target");
     }
+
+    if (ability == AbilityType::KNOCKBACK_EVERY_3) {
+        if (auto* anti = dynamic_cast<AntivirusTower*>(ctx.target_tower)) {
+            anti->setKnockbackInterval(3);
+            return;
+        }
+        if (auto* adb = dynamic_cast<AdblockerTower*>(ctx.target_tower)) {
+            adb->setKnockbackInterval(3);
+            return;
+        }
+        throw IncompatibleEvolutionException(
+            "Knockback: incompatible evolution for this tower");
+    }
+
+    // Restul virtual dispatch
+    ctx.target_tower->applyAbility(ability);
 }
 
 std::unique_ptr<Evolution> AbilityEvolution::clone() const {
@@ -74,7 +46,7 @@ AbilityEvolution::AbilityType AbilityEvolution::getAbility() const { return abil
 // std::minmax normalizeaza ordinea ca sa nu mai scriem (a,b) si (b,a) separat
 // cppcheck-suppress unusedFunction // T3
 bool AbilityEvolution::canCombine(AbilityType a, AbilityType b) {
-    if (a == b) return false;  
+    if (a == b) return false;
     auto p = std::minmax(a, b);
     auto x = p.first;
     auto y = p.second;

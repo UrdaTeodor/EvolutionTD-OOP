@@ -1,14 +1,18 @@
 #include "BytecoinMinerTower.h"
+#include "GlobalStatBuffs.h"
+#include "GameException.h"
 
-BytecoinMinerTower::BytecoinMinerTower(int col, int row)
-    : Tower("BytecoinMiner", 50, col, row, 0.0f) {}
+BytecoinMinerTower::BytecoinMinerTower(const TowerSpec& spec, int col, int row)
+    : Tower(spec, "bytecoinminer", col, row) {}
 
-std::unique_ptr<Tower> makeBytecoinMiner(int col, int row) {
-    return std::make_unique<BytecoinMinerTower>(col, row);
+std::unique_ptr<Tower> makeBytecoinMiner(const TowerSpec& spec, int col, int row) {
+    return std::make_unique<BytecoinMinerTower>(spec, col, row);
 }
 
-// nu ataca, deci update e no-op
-void BytecoinMinerTower::update(std::vector<Enemy>& /*enemies*/, float /*deltaTime*/) {}
+void BytecoinMinerTower::update(std::vector<Enemy>& /*enemies*/, float /*deltaTime*/,
+                                const GlobalStatBuffs& /*buffs*/) {
+    // Nu ataca.
+}
 
 char BytecoinMinerTower::getDisplayChar() const { return 'M'; }
 
@@ -16,9 +20,19 @@ std::unique_ptr<Tower> BytecoinMinerTower::clone() const {
     return std::make_unique<BytecoinMinerTower>(*this);
 }
 
-// venit pasiv la finalul fiecarui val. Cost 50 => ROI in 2 valuri.
-int BytecoinMinerTower::collectIncome() { return 25; }
+int BytecoinMinerTower::collectIncome(const GlobalStatBuffs& buffs) const {
+    float multiplier = 1.0f + buffs.for_type(getTypeKey()).income_pct;
+    return static_cast<int>(spec().income_per_wave * multiplier);
+}
+
+void BytecoinMinerTower::applyAbility(AbilityType a) {
+    switch (a) {
+        case AbilityType::MOVABLE: enableMovable(); break;
+        default:
+            Tower::applyAbility(a);
+    }
+}
 
 void BytecoinMinerTower::displayDetails(std::ostream& os) const {
-    os << " income:+25/wave";
+    os << " income:+" << spec().income_per_wave << "/wave";
 }

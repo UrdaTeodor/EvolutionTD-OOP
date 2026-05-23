@@ -39,6 +39,37 @@ Codul are deja toata logica pentru shop-ul cu evolutii RNG, doar nu e expusa la 
 - `AbilityEvolution::canCombine(a, b)`: helper static pentru shop sa verifice daca user-ul are 2 abilitati care se pot combina.
 - Toate efectele de evolutie sunt implementate in derivatele Tower (flag-uri ca `doubleShot`, `fireTrail`, `multiTarget`, `armored`, `reflectiveShield`, `biggerAura`, `movable`) si sunt aplicate corect in `update()` cand sunt activate via `apply()`.
 
+UPDATE v0.2.5a:
+
+**Fix dynamic_cast **
+- `AbilityEvolution::apply` foloseste acum `Tower::applyAbility(AbilityType)` virtual general; fiecare derivata override pentru evolutiile pe care le suporta.
+- `KNOCKBACK_EVERY_3` PASTREAZA `dynamic_cast<AntivirusTower*>` / `<AdblockerTower*>` (singura exceptie).
+- `StatEvolution::apply` nu mai foloseste `dynamic_cast`: stats se aplica GLOBAL pe `GlobalStatBuffs` per TowerType (toate turnurile de acel tip instant + viitorii).
+
+**refactor date hardcodate:**
+- A 2-a lib externa: nlohmann/json v3.11.3 cu FetchContent.
+- `data/towers.json`, `data/enemies.json`, `data/waves.json`, `data/maps.json`, stats si compozitie val mutate din cod in JSON. balansare fara recompile + scalabilitate
+- `TowerSpec` / `EnemySpec` / `WaveSpec` / `MapSpec` POD-uri + `from_json` ADL pattern.
+- `DataRegistry` ca lookup central, arunca `DataException` (a 4-a derivata din `GameException`) la cheie lipsa.
+
+**Cerinte T3:**
+- Class template: `WeightedTable<T>` (instantiere `<EnemySpec>` in Director; vor veni `<MiniStatSpec>`/`<MajorEvolutionSpec>` la shop).
+- Function template: `loadIntoMap<T>` cu 4 instantieri reale (TowerSpec/EnemySpec/WaveSpec/MapSpec).
+
+**Director  + 10 wave-uri:**
+- `Director` clasa cu unlock progresiv + `generateSpawns(budget)` weighted. Pool-ul de inamici creste pe masura ce `WaveSpec.unlocks_after`. Ideea e ca fiecare playthrough sa fie diferit si sa nu existe run-uri prea usoare, deci spawnul inamicilor va fi in functie de ce defence uri are jucatorul si wave ul curent (endless)
+- 10 wave-uri (1-2 Adware intro, 3-4 Worm intro, 5 Trojan intro + offers_major, 6-9 Director, 10 BOSS ILOVEYOU). Mai mult de demo momentan, implementare endless in v0.3
+
+**Tower si EvolutionContext:**
+- Tower base nu mai are membri `damage`/`range`/etc., citeste din `TowerSpec` (din `DataRegistry`).
+- `GlobalStatBuffs` accumulator per TowerType, pass-uit ca parametru in `update(enemies, dt, buffs)`. pentru evolutii globale fara per-instance state duplicat la v0.3
+- `EvolutionContext { buffs, target_type_key, target_tower }` — struct pasat la `Evolution::apply()` permite Stat (global) si Ability (instanta) fara dynamic_cast la caller.
+
+**Game state pregatit pentru save/load:**
+- `std::mt19937 rng_` membru in Game (seedable, serializable cu `operator<<` pentru run reproductibil si save).
+- Game constructor primeste `DataRegistry&` + `map_id`; `start_hp`/`start_money`/`path`/`max_waves` vin din `MapSpec`.
+
+
 ### Roadmap T3 planificat
 
 1. Shop intre valuri: dupa fiecare val, fereastra cu 3 evolutii random (rarity weighted: 50% Mini, 30% Rare, 15% Epic, 5% Legendary). User cumpara cu credite si aplica pe un tower.
@@ -134,6 +165,8 @@ O cerință nu se consideră îndeplinită dacă este realizată doar prin cod g
   - noua derivată va fi integrată în codul existent (adică va fi folosită, nu adăugată doar ca să fie)
 - [x] tag de `git` pe commit cu **toate bifele**: de exemplu `v0.2`
 - [ ] code review #2 2 proiecte
+
+
 
 ## Tema 3
 

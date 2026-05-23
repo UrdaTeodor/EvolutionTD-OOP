@@ -1,9 +1,10 @@
 #pragma once
 #include "Evolution.h"
 
-// StatEvolution: aplica boost-uri numerice.
-// Folosit pentru Mini si Rare 
-// Foloseste dynamic_cast in apply() pentru a chema buff-uri specifice tipului de turn.
+// StatEvolution: aplica buffuri minore pe TowerType (T3 refactor).
+// Folosit pentru Mini si Rare.
+// Inainte foloseam dynamic_cast<...Tower*> pe target; acum aplica pe GlobalStatBuffs
+// pentru target_type_key din context, fara dynamic_cast.
 class StatEvolution : public Evolution {
     float damageBoostPct;       // % buff la damage (Antivirus/Adblocker)
     float rangeBoostPct;        // % buff la raza (toate turnurile - firewall))
@@ -16,7 +17,7 @@ public:
                   float damageBoost, float rangeBoost, float attackSpeedBoost,
                   float hpBoost, float regenBoost);
 
-    void apply(Tower& target) override;
+    void apply(const EvolutionContext& ctx) override;
     std::unique_ptr<Evolution> clone() const override;
 
 protected:

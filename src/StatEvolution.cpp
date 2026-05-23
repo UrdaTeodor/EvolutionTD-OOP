@@ -1,8 +1,6 @@
 #include "StatEvolution.h"
-#include "AntivirusTower.h"
-#include "AdblockerTower.h"
-#include "FirewallTower.h"
-#include "HoneypotTower.h" 
+#include "GlobalStatBuffs.h"
+#include "GameException.h"
 #include <utility>
 
 StatEvolution::StatEvolution(std::string name, int cost, Rarity rarity,
@@ -15,22 +13,23 @@ StatEvolution::StatEvolution(std::string name, int cost, Rarity rarity,
       hpBoostPct(hpBoost),
       regenBoostPct(regenBoost) {}
 
-// Aplica buff-urile pe turn. dynamic_cast pentru cele specifice tipului.
-void StatEvolution::apply(Tower& target) {
-
-    target.buffRange(rangeBoostPct);
-
-    // damage / attackSpeed: doar Antivirus si Adblocker au aceste stats
-    if (auto* anti = dynamic_cast<AntivirusTower*>(&target)) {
-        anti->buffDamage(damageBoostPct);
-        anti->buffAttackSpeed(attackSpeedBoostPct);
-    } else if (auto* adb = dynamic_cast<AdblockerTower*>(&target)) {
-        adb->buffDamage(damageBoostPct);
-        adb->buffAttackSpeed(attackSpeedBoostPct);
-    } else if (auto* fw = dynamic_cast<FirewallTower*>(&target)) {
-        fw->buffMaxHP(hpBoostPct);
-        fw->buffRegenRate(regenBoostPct);
+// T3 refactor, Aplica direct pe GlobalStatBuffs pentru tower
+// Tower-ele citesc apoi buff-urile din accumulator cand calculeaza stats efective.
+void StatEvolution::apply(const EvolutionContext& ctx) {
+    if (!ctx.buffs) {
+        throw IncompatibleEvolutionException(
+            "StatEvolution.apply: buffs lipseste din EvolutionContext");
     }
+    if (ctx.target_type_key.empty()) {
+        throw IncompatibleEvolutionException(
+            "StatEvolution.apply: target_type_key gol");
+    }
+    auto& tb = ctx.buffs->mutable_for(ctx.target_type_key);
+    tb.damage_pct       += damageBoostPct;
+    tb.range_pct        += rangeBoostPct;
+    tb.attack_speed_pct += attackSpeedBoostPct;
+    tb.max_hp_pct       += hpBoostPct;
+    tb.regen_pct        += regenBoostPct;
 }
 
 std::unique_ptr<Evolution> StatEvolution::clone() const {

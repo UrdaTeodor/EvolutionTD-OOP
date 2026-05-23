@@ -1,0 +1,34 @@
+{
+  "adware": {
+    "display_name": "Adware",
+    "max_health": 50.0,
+    "speed": 2.0,
+    "reward": 5,
+    "director_cost": 1,
+    "is_boss": false
+  },
+  "trojan": {
+    "display_name": "Trojan",
+    "max_health": 150.0,
+    "speed": 1.0,
+    "reward": 15,
+    "director_cost": 4,
+    "is_boss": false
+  },
+  "worm": {
+    "display_name": "Worm",
+    "max_health": 30.0,
+    "speed": 4.0,
+    "reward": 7.5,
+    "director_cost": 1,
+    "is_boss": false
+  },
+  "iloveyou": {
+    "display_name": "ILOVEYOU",
+    "max_health": 7500.0,
+    "speed": 0.5,
+    "reward": 500,
+    "director_cost": 0,
+    "is_boss": true
+  }
+}

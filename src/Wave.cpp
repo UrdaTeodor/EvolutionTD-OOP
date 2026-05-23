@@ -1,4 +1,5 @@
 #include "Wave.h"
+#include "GlobalStatBuffs.h"
 #include <iostream>
 
 //Regula celor 3 (cand Wave va contine pointeri la inamici polimorfici)
@@ -34,7 +35,8 @@ Wave::~Wave() {
 int Wave::simulate(std::vector<std::unique_ptr<Tower>>& towers,
                    const std::vector<std::pair<int, int>>& path,
                    float deltaTime,
-                   int& moneyEarned) {
+                   int& moneyEarned,
+                   const GlobalStatBuffs& buffs) {
     moneyEarned = 0;
 
     // 1. Genereaza urmatorul inamic din coada cand timerul expira.
@@ -54,9 +56,9 @@ int Wave::simulate(std::vector<std::unique_ptr<Tower>>& towers,
         enemy.resetSlow();
     }
 
-    // 3. Fiecare turn actioneaza
+    // 3. Fiecare turn actioneaza 
     for (auto& tower : towers) {
-        tower->update(activeEnemies, deltaTime);
+        tower->update(activeEnemies, deltaTime, buffs);
     }
 
     // 4. Misca fiecare inamic

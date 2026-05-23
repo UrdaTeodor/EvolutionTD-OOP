@@ -2,12 +2,11 @@
 #include "Tower.h"
 #include <memory>
 
-// FirewallTower : public Tower => "este un fel de Tower".
-// Singurul turn care sta PE DRUM (suprascrie requiresPath() -> true).
+// FirewallTower : public Tower
+// Singurul turn cu HP per-instance (currentHP) si singurul care sta pe path
 class FirewallTower : public Tower {
+    // per-instance state (HP-ul curent scade pe parcursul jocului)
     float currentHP;
-    float maxHP;
-    float regenRate;
 
     // ability flags
     bool reflectiveShield;
@@ -16,23 +15,17 @@ class FirewallTower : public Tower {
     void blockEnemy(Enemy& enemy);
 
 public:
-    FirewallTower(int col, int row);
+    FirewallTower(const TowerSpec& spec, int col, int row);
 
-    void update(std::vector<Enemy>& enemies, float deltaTime) override;
+    void update(std::vector<Enemy>& enemies, float deltaTime,
+                const GlobalStatBuffs& buffs) override;
     char getDisplayChar() const override;
     std::unique_ptr<Tower> clone() const override;
-    bool requiresPath() const override;
 
-    // stat buffs (apelate din StatEvolution::apply prin dynamic_cast)
-    void buffMaxHP(float pct);
-    void buffRegenRate(float pct);
-
-    // ability enablers (apelate din AbilityEvolution::apply)
-    void enableReflectiveShield();
-    void enableArmored();
+    void applyAbility(AbilityType a) override;
 
 protected:
     void displayDetails(std::ostream& os) const override;
 };
 
-std::unique_ptr<Tower> makeFirewall(int col, int row);
+std::unique_ptr<Tower> makeFirewall(const TowerSpec& spec, int col, int row);

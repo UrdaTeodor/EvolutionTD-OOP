@@ -1,8 +1,4 @@
 #include "MythicEvolution.h"
-#include "AntivirusTower.h"
-#include "AdblockerTower.h"
-#include "FirewallTower.h"
-#include "HoneypotTower.h"
 #include "GameException.h"
 #include <algorithm>
 #include <utility>
@@ -40,20 +36,17 @@ void swap(MythicEvolution& a, MythicEvolution& b) noexcept {
     swap(a.mythicType, b.mythicType);
 }
 
-void MythicEvolution::apply(Tower& target) {
-    source1->apply(target);
-    source2->apply(target);
+void MythicEvolution::apply(const EvolutionContext& ctx) {
+    source1->apply(ctx);
+    source2->apply(ctx);
 
-    // 2. efect mythic specific (placeholder)
+    // efect mythic specific (placeholder)
     switch (mythicType) {
         case MythicType::PHOENIX_BARRAGE:
-            // TODO: 
             break;
         case MythicType::ROVING_BRUISER:
-            // TODO: 
             break;
         case MythicType::SHIELDED_RUNNER:
-            // TODO: 
             break;
     }
 }

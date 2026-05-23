@@ -2,13 +2,11 @@
 #include <string>
 #include <ostream>
 #include <memory>
-
-//apply(Tower&) ia referinta, nu trb include complet aici
-class Tower;
-
+#include "EvolutionContext.h"
 
 // Are 3 derivate: StatEvolution, AbilityEvolution, MythicEvolution.
-// Aplicat pe un turn prin apply()
+// T3 refactor: apply primeste EvolutionContext (buffs + opt tower target),
+// nu mai e dependent direct de Tower.
 class Evolution {
 public:
     // Rarity = tag pentru shop/inventar
@@ -24,8 +22,9 @@ public:
     Evolution(std::string name, int cost, Rarity rarity);
     virtual ~Evolution() = default;
 
-    // aplica efectul evo
-    virtual void apply(Tower& target) = 0;
+    // T3: aplica efectul prin context. StatEvolution prin buffs+target_type_key,
+    // AbilityEvolution prin target_tower (skill expression cu token).
+    virtual void apply(const EvolutionContext& ctx) = 0;
 
     // virtual constructor (clone):copierea polimorfica
     // (folosit la inventar + la MythicEvolution care detine 2 surse)

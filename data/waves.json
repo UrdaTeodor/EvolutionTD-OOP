@@ -1,0 +1,72 @@
+{
+  "wave_1": {
+    "intro":         ["adware", "adware", "adware"],
+    "unlocks_after": [],
+    "base_budget":   0,
+    "offers_major":  false,
+    "is_boss":       false
+  },
+  "wave_2": {
+    "intro":         ["adware", "adware", "adware", "adware", "adware"],
+    "unlocks_after": ["adware"],
+    "base_budget":   0,
+    "offers_major":  false,
+    "is_boss":       false
+  },
+  "wave_3": {
+    "intro":         ["worm", "worm", "worm"],
+    "unlocks_after": [],
+    "base_budget":   8,
+    "offers_major":  false,
+    "is_boss":       false
+  },
+  "wave_4": {
+    "intro":         ["worm", "worm", "worm", "worm"],
+    "unlocks_after": ["worm"],
+    "base_budget":   12,
+    "offers_major":  false,
+    "is_boss":       false
+  },
+  "wave_5": {
+    "intro":         ["trojan", "trojan", "trojan"],
+    "unlocks_after": ["trojan"],
+    "base_budget":   16,
+    "offers_major":  true,
+    "is_boss":       false
+  },
+  "wave_6": {
+    "intro":         [],
+    "unlocks_after": [],
+    "base_budget":   30,
+    "offers_major":  false,
+    "is_boss":       false
+  },
+  "wave_7": {
+    "intro":         [],
+    "unlocks_after": [],
+    "base_budget":   40,
+    "offers_major":  false,
+    "is_boss":       false
+  },
+  "wave_8": {
+    "intro":         [],
+    "unlocks_after": [],
+    "base_budget":   55,
+    "offers_major":  true,
+    "is_boss":       false
+  },
+  "wave_9": {
+    "intro":         [],
+    "unlocks_after": [],
+    "base_budget":   70,
+    "offers_major":  true,
+    "is_boss":       false
+  },
+  "wave_10": {
+    "intro":         ["iloveyou"],
+    "unlocks_after": [],
+    "base_budget":   50,
+    "offers_major":  true,
+    "is_boss":       true
+  }
+}

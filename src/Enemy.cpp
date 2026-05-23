@@ -1,22 +1,19 @@
 #include "Enemy.h"
+#include "EnemySpec.h"
 #include <cmath>
 #include <iostream>
 
 
-Enemy makeAdware() { return Enemy("Adware", 50.0f,  2.0f, 10); }
-Enemy makeTrojan() { return Enemy("Trojan", 150.0f, 1.0f, 25); }
-Enemy makeWorm()   { return Enemy("Worm",   30.0f,  4.0f, 15); }
-
-// Boss val 5: HP = 50 * Trojan (7500), viteza = 0.5 * Trojan, reward 500.
-Enemy makeILOVEYOU() { return Enemy("ILOVEYOU", 7500.0f, 0.5f, 500); }
-
-
-// pathIndex = 1 pentru ca pozitia 0 din path e startul, deja "atinsa".
+// pathIndex = 1 pentru ca pozitia 0 din path e startul
 Enemy::Enemy(const std::string& name, float maxHealth, float speed, int reward)
     : name(name), maxHealth(maxHealth), currentHealth(maxHealth),
       speed(speed), reward(reward),
       pathIndex(1), x(0.0f), y(0.0f),
       slowFactor(1.0f), vx(0.0f), vy(0.0f) {}
+
+// T3 constructor din spec
+Enemy::Enemy(const EnemySpec& spec)
+    : Enemy(spec.display_name, spec.max_health, spec.speed, spec.reward) {}
 
 
 float Enemy::distanceTo(float targetX, float targetY) const {
