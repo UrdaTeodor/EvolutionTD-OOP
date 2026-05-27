@@ -13,7 +13,7 @@ struct TowerTypeBuffs {
     float attack_speed_pct = 0.0f;
     float max_hp_pct       = 0.0f;   // Firewall
     float regen_pct        = 0.0f;   // Firewall
-    float slow_pct         = 0.0f;   // Honeypot (slow MAI puternic = factor mai mic)
+    float slow_pct         = 0.0f;   // Honeypot 
     float income_pct       = 0.0f;   // Miner
 };
 

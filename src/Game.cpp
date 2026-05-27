@@ -7,10 +7,13 @@
 #include "BytecoinMinerTower.h"
 #include "DataRegistry.h"
 #include "GameException.h"
+#include "SaveData.h"
+#include "AbilityType.h"
 #include <iostream>
 #include <iomanip>
 #include <cmath>
 #include <algorithm>
+#include <sstream>
 #include <string>
 
 namespace {
@@ -63,10 +66,14 @@ Game::Game(const Game& other)
       starting_money_(other.starting_money_),
       buffs_(other.buffs_),
       rng_(other.rng_),               // copiaza state-ul RNG (reproducible)
-      director_(other.director_),     // copy default pool_ + rng_ pointer 
+      director_(other.director_),     // copy default pool_ + rng_ pointer
       currentWave(other.currentWave),
       path(other.path),
-      playerHP(other.playerHP), money(other.money), waveNumber(other.waveNumber)
+      playerHP(other.playerHP), money(other.money), waveNumber(other.waveNumber),
+      total_kills_(other.total_kills_),
+      total_money_earned_(other.total_money_earned_),
+      player_weight_(other.player_weight_),
+      endless_active_(other.endless_active_)
 {
     // Director.rng_ pointer din other puncteaza la &other.rng_
     director_.setRng(rng_);
@@ -109,12 +116,16 @@ void swap(Game& a, Game& b) noexcept {
     a.director_.setRng(a.rng_);
     b.director_.setRng(b.rng_);
 
-    swap(a.towers,      b.towers);
-    swap(a.currentWave, b.currentWave);
-    swap(a.path,        b.path);
-    swap(a.playerHP,    b.playerHP);
-    swap(a.money,       b.money);
-    swap(a.waveNumber,  b.waveNumber);
+    swap(a.towers,             b.towers);
+    swap(a.currentWave,        b.currentWave);
+    swap(a.path,               b.path);
+    swap(a.playerHP,           b.playerHP);
+    swap(a.money,              b.money);
+    swap(a.waveNumber,         b.waveNumber);
+    swap(a.total_kills_,       b.total_kills_);
+    swap(a.total_money_earned_, b.total_money_earned_);
+    swap(a.player_weight_,     b.player_weight_);
+    swap(a.endless_active_,    b.endless_active_);
 }
 
 void Game::takeSnapshot() {
@@ -192,19 +203,66 @@ bool Game::isValidPlacement(int col, int row, bool needsPath) const {
 // intro hardcodat din WaveSpec + Director procedural.
 Wave Game::buildWave(int waveNum) {
     const MapSpec&  map  = registry_->getMap(current_map_id_);
-    const WaveSpec& wave_spec = registry_->getWave(waveIdFor(map, waveNum));
 
     Wave wave(waveNum, {});
 
-    //  intro din JSON
-    for (const auto& key : wave_spec.intro) {
-        wave.addEnemy(Enemy(registry_->getEnemy(key)));
+    const float w        = static_cast<float>(player_weight_);
+    const float hp_mult  = 1.0f + 0.01f * w;
+    float interval       = std::max(0.01f, 2.0f - 0.025f * std::sqrt(2.0f * w));
+
+    if (waveNum > max_waves_) {
+        int tier = std::max(0, (waveNum - max_waves_ - 1) / 10);
+        float endless_mult   = std::pow(2.0f, static_cast<float>(tier));
+        int   endless_budget = static_cast<int>(50.0f * endless_mult);
+
+        auto spawns    = director_.generateSpawns(endless_budget);
+        bool boss_wave = ((waveNum - max_waves_) % 15 == 0)
+                      && registry_->hasEnemy("iloveyou");
+        int total = static_cast<int>(spawns.size()) + (boss_wave ? 1 : 0);
+        if (total > 0 && total * interval > 30.0f) {
+            interval = 30.0f / static_cast<float>(total);
+        }
+        wave.setSpawnInterval(interval);
+
+        if (boss_wave) {
+            Enemy boss(registry_->getEnemy("iloveyou"));
+            boss.scaleHealth(1.0f + (hp_mult - 1.0f) * 0.5f);
+            wave.addEnemy(boss);
+        }
+        for (const auto& spec : spawns) {
+            Enemy e(spec);
+            e.scaleHealth(hp_mult);
+            wave.addEnemy(e);
+        }
+        return wave;
     }
 
-    //  Director: spawnari random ponderate (din buget)
-    auto spawns = director_.generateSpawns(wave_spec.base_budget);
+    const WaveSpec& wave_spec = registry_->getWave(waveIdFor(map, waveNum));
+
+    auto spawns      = director_.generateSpawns(wave_spec.base_budget);
+    int  total_spawn = static_cast<int>(wave_spec.intro.size() + spawns.size());
+
+    // Cap 30s per wave: daca total_spawn * interval > 30, strang interval.
+    if (total_spawn > 0 && total_spawn * interval > 30.0f) {
+        interval = 30.0f / static_cast<float>(total_spawn);
+    }
+    wave.setSpawnInterval(interval);
+
+    // Boss primeste doar jumate din buff-ul de HP (player are sansa rezonabila la wave 10).
+    auto effectiveMult = [hp_mult](bool is_boss) {
+        return is_boss ? (1.0f + (hp_mult - 1.0f) * 0.5f) : hp_mult;
+    };
+
+    for (const auto& key : wave_spec.intro) {
+        const EnemySpec& spec = registry_->getEnemy(key);
+        Enemy e(spec);
+        e.scaleHealth(effectiveMult(spec.is_boss));
+        wave.addEnemy(e);
+    }
     for (const auto& spec : spawns) {
-        wave.addEnemy(Enemy(spec));
+        Enemy e(spec);
+        e.scaleHealth(effectiveMult(spec.is_boss));
+        wave.addEnemy(e);
     }
 
     return wave;
@@ -229,6 +287,14 @@ void Game::placeTower(int typeChoice, int col, int row) {
     }
     const std::string& key = keys[typeChoice - 1];
     const TowerSpec& spec = registry_->getTower(key);
+
+    int count_of_type = 0;
+    for (const auto& t : towers) if (t->getTypeKey() == key) ++count_of_type;
+    if (count_of_type >= spec.max_count) {
+        throw InvalidPlacementException(
+            "Limita atinsa pentru " + spec.display_name +
+            " (max " + std::to_string(spec.max_count) + ")");
+    }
 
     std::unique_ptr<Tower> newTower;
     switch (typeChoice) {
@@ -266,6 +332,20 @@ void Game::placeTower(int typeChoice, int col, int row) {
     refreshGrid();
 }
 
+int Game::sellTower(int col, int row) {
+    for (auto it = towers.begin(); it != towers.end(); ++it) {
+        if ((*it)->getX() == col && (*it)->getY() == row) {
+            int refund = static_cast<int>(0.75f * (*it)->getCost())
+                       + static_cast<int>(0.5f  * (*it)->getTokenInvestment());
+            money += refund;
+            towers.erase(it);
+            refreshGrid();
+            return refund;
+        }
+    }
+    return 0;
+}
+
 void Game::startWave() {
     takeSnapshot();
     currentWave = buildWave(waveNumber);
@@ -274,9 +354,12 @@ void Game::startWave() {
 void Game::tickWave(float dt) {
     if (!isWaveActive()) return;
     int earned = 0;
-    int damage = currentWave.simulate(towers, path, dt, earned, buffs_);
+    int killed = 0;
+    int damage = currentWave.simulate(towers, path, dt, earned, killed, buffs_);
     money    += earned;
     playerHP -= damage;
+    total_kills_        += killed;
+    total_money_earned_ += earned;
 }
 
 bool Game::isWaveActive() const {
@@ -293,78 +376,12 @@ void Game::endWave() {
     waveNumber++;
 }
 
-// cppcheck-suppress unusedFunction
-void Game::runWave() {
-    takeSnapshot();
-    currentWave = buildWave(waveNumber);
-
-    std::cout << "\n=== WAVE " << waveNumber << " starting ===\n";
-    std::cout << currentWave;
-
-    constexpr float DT           = 0.1f;
-    constexpr float PRINT_EVERY  = 2.0f;
-    float timeSincePrint = PRINT_EVERY;
-    int   safetyLimit    = 5000;
-
-    for (int tick = 0; tick < safetyLimit && !currentWave.allDefeated() && !isGameOver(); tick++) {
-        int earned = 0;
-        int damage = currentWave.simulate(towers, path, DT, earned, buffs_);
-
-        if (earned > 0) {
-            money    += earned;
-            std::cout << "  >> +" << earned << " credits earned! Total: " << money << "\n";
-        }
-        playerHP -= damage;
-
-        timeSincePrint += DT;
-        if (timeSincePrint >= PRINT_EVERY) {
-            refreshGrid();
-            displayGrid();
-            std::cout << *this;
-            timeSincePrint = 0.0f;
-        }
-    }
-
-    refreshGrid();
-    displayGrid();
-    std::cout << "\n=== WAVE " << waveNumber << " complete ===\n";
-
-    for (const auto& tower : towers) {
-        int income = tower->collectIncome(buffs_);
-        if (income > 0) {
-            money += income;
-            std::cout << "  >> " << tower->getName() << " mined +" << income
-                      << " credits! Total: " << money << "\n";
-        }
-    }
-
-    std::cout << *this;
-    applyWaveUnlocks(waveNumber);
-    waveNumber++;
-}
-
-void Game::displayGrid() const {
-    std::cout << "\n   ";
-    for (int col = 0; col < GRID_SIZE; col++) {
-        std::cout << (col % 10);
-    }
-    std::cout << "\n";
-    for (int row = 0; row < GRID_SIZE; row++) {
-        std::cout << std::setw(2) << row << " ";
-        for (int col = 0; col < GRID_SIZE; col++) {
-            std::cout << grid[row][col];
-        }
-        std::cout << "\n";
-    }
-    std::cout << "Legend: .=empty  P=path  A=Antivirus  D=Adblocker  H=Honeypot  F=Firewall  M=Miner  E=Enemy\n";
-}
-
 bool Game::isGameOver() const {
     return playerHP <= 0;
 }
 
 bool Game::allWavesDone() const {
-    return waveNumber > max_waves_;
+    return waveNumber > max_waves_ && !endless_active_;
 }
 
 std::ostream& operator<<(std::ostream& os, const Game& g) {
@@ -374,4 +391,134 @@ std::ostream& operator<<(std::ostream& os, const Game& g) {
        << " | Wave: " << displayWave << "/" << g.max_waves_
        << " | Enemies on field: " << g.currentWave.activeCount() << " ]\n";
     return os;
+}
+
+
+// Save / Load
+
+
+namespace {
+    int keyToTypeChoice(const std::string& key) {
+        if (key == "antivirus")     return 1;
+        if (key == "adblocker")     return 2;
+        if (key == "honeypot")      return 3;
+        if (key == "firewall")      return 4;
+        if (key == "bytecoinminer") return 5;
+        return 0;
+    }
+}
+
+void Game::serializeTo(SaveData& out) const {
+    out.map_id             = current_map_id_;
+    out.wave_number        = waveNumber;
+    out.player_hp          = playerHP;
+    out.money              = money;
+    out.total_kills        = total_kills_;
+    out.total_money_earned = total_money_earned_;
+    out.player_weight      = player_weight_;
+    out.endless_active     = endless_active_;
+
+    out.towers.clear();
+    for (const auto& t : towers) {
+        SaveData::TowerEntry te;
+        te.type_key         = t->getTypeKey();
+        te.col              = t->getX();
+        te.row              = t->getY();
+        te.token_investment = t->getTokenInvestment();
+        for (AbilityType ab : t->getAppliedAbilities()) {
+            te.applied_abilities.emplace_back(abilityToString(ab));
+        }
+        out.towers.push_back(std::move(te));
+    }
+
+    // Buffs
+    out.buffs.clear();
+    for (const auto& [type_key, tb] : buffs_.all()) {
+        SaveData::BuffEntry be;
+        be.type_key         = type_key;
+        be.damage_pct       = tb.damage_pct;
+        be.range_pct        = tb.range_pct;
+        be.attack_speed_pct = tb.attack_speed_pct;
+        be.max_hp_pct       = tb.max_hp_pct;
+        be.regen_pct        = tb.regen_pct;
+        be.slow_pct         = tb.slow_pct;
+        be.income_pct       = tb.income_pct;
+        out.buffs.push_back(std::move(be));
+    }
+
+    // RNG state: operator<< standard pe mt19937 (text serialization).
+    std::ostringstream oss;
+    oss << rng_;
+    out.rng_state = oss.str();
+}
+
+void Game::restoreFrom(const SaveData& src) {
+    current_map_id_     = src.map_id;
+    waveNumber          = src.wave_number;
+    playerHP            = src.player_hp;
+    total_kills_        = src.total_kills;
+    total_money_earned_ = src.total_money_earned;
+    player_weight_      = src.player_weight;
+    endless_active_     = src.endless_active;
+
+    // Buffs: rebuild
+    buffs_ = GlobalStatBuffs{};
+    for (const auto& be : src.buffs) {
+        auto& tb = buffs_.mutable_for(be.type_key);
+        tb.damage_pct       = be.damage_pct;
+        tb.range_pct        = be.range_pct;
+        tb.attack_speed_pct = be.attack_speed_pct;
+        tb.max_hp_pct       = be.max_hp_pct;
+        tb.regen_pct        = be.regen_pct;
+        tb.slow_pct         = be.slow_pct;
+        tb.income_pct       = be.income_pct;
+    }
+
+    // Towers: clear si replay placeTower cu money bypass (placeTower deduce cost,
+    // dam temporar money infinit ca sa nu blocheze; resetam money la final).
+    towers.clear();
+    int saved_money = src.money;
+    money = 1000000000;
+    for (const auto& te : src.towers) {
+        int choice = keyToTypeChoice(te.type_key);
+        if (choice == 0) continue;
+        try {
+            placeTower(choice, te.col, te.row);
+        } catch (const GameException&) {
+            continue;
+        }
+        Tower* placed = towers.back().get();
+        placed->recordTokenInvestment(te.token_investment);
+        // Apply abilities. KNOCKBACK_EVERY_3 e cazul special cu dynamic_cast (T2 pastrat).
+        for (const auto& ab_str : te.applied_abilities) {
+            if (ab_str == "KNOCKBACK_EVERY_3") {
+                if (auto* anti = dynamic_cast<AntivirusTower*>(placed)) {
+                    anti->setKnockbackInterval(3);
+                } else if (auto* adb = dynamic_cast<AdblockerTower*>(placed)) {
+                    adb->setKnockbackInterval(3);
+                }
+                continue;
+            }
+            try {
+                AbilityType ab = stringToAbility(ab_str);
+                placed->applyAbility(ab);
+            } catch (const std::exception&) {
+                // necunoscut / incompatibil - skip
+            }
+        }
+    }
+    money = saved_money;
+
+    // RNG deserialize
+    if (!src.rng_state.empty()) {
+        std::istringstream iss(src.rng_state);
+        iss >> rng_;
+    }
+    // Director re-aplica unlocks pentru wave-urile deja trecute
+    director_ = Director(rng_);
+    for (int w = 1; w < waveNumber; w++) {
+        applyWaveUnlocks(w);
+    }
+
+    refreshGrid();
 }

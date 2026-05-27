@@ -4,9 +4,9 @@
 
 // Ierarhie proprie de exceptii
 
-//   catch (const GameException&)               -> orice eroare a jocului
+//   catch (const GameException&)               
 //   catch (const InvalidPlacementException&)   
-//   catch (const std::exception&)              -> orice exceptie din proiect
+//   catch (const std::exception&)              
 class GameException : public std::runtime_error {
 public:
     explicit GameException(const std::string& msg) : std::runtime_error(msg) {}

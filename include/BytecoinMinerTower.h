@@ -2,13 +2,14 @@
 #include "Tower.h"
 #include <memory>
 
-// BytecoinMinerTower: tower off-path care nu ataca, doar genereaza venit pasiv.
+//doar genereaza venit pasiv.
 class BytecoinMinerTower : public Tower {
 public:
     BytecoinMinerTower(const TowerSpec& spec, int col, int row);
 
     void update(std::vector<Enemy>& enemies, float deltaTime,
-                const GlobalStatBuffs& buffs) override;
+                const GlobalStatBuffs& buffs,
+                const std::vector<std::pair<int, int>>& path) override;
     char getDisplayChar() const override;
     std::unique_ptr<Tower> clone() const override;
     int collectIncome(const GlobalStatBuffs& buffs) const override;

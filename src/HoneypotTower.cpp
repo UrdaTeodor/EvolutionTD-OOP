@@ -4,20 +4,23 @@
 #include <cmath>
 
 HoneypotTower::HoneypotTower(const TowerSpec& spec, int col, int row)
-    : Tower(spec, "honeypot", col, row), biggerAura(false) {}
+    : Tower(spec, "honeypot", col, row) {}
 
 std::unique_ptr<Tower> makeHoneypot(const TowerSpec& spec, int col, int row) {
     return std::make_unique<HoneypotTower>(spec, col, row);
 }
 
 void HoneypotTower::update(std::vector<Enemy>& enemies, float /*deltaTime*/,
-                           const GlobalStatBuffs& buffs) {
-    // BiggerAura = +50% range (asta inca per-instance, buff global ar putea fi adaugat in shop)
+                           const GlobalStatBuffs& buffs,
+                           const std::vector<std::pair<int, int>>& /*path*/) {
     float range = effectiveRange(buffs);
-    if (biggerAura) range *= 1.5f;
+    if (biggerAuraStacks > 0) range *= (1.0f + biggerAuraStacks);
 
-    // slow factor: spec.slow_factor (base), buff global slow_pct scade factorul
     float slow = spec().slow_factor;
+    if (biggerAuraStacks > 0) {
+        slow = 1.0f - (1.0f - slow) * (1.0f + 0.5f * biggerAuraStacks);
+    }
+
     float slow_pct = buffs.for_type(getTypeKey()).slow_pct;
     slow = slow * (1.0f - slow_pct);
     if (slow < 0.0f) slow = 0.0f;
@@ -41,8 +44,8 @@ std::unique_ptr<Tower> HoneypotTower::clone() const {
 
 void HoneypotTower::applyAbility(AbilityType a) {
     switch (a) {
-        case AbilityType::BIGGER_AURA: biggerAura = true; break;
-        case AbilityType::MOVABLE:     enableMovable();   break;
+        case AbilityType::BIGGER_AURA: ++biggerAuraStacks;  break;
+        case AbilityType::MOVABLE:     enableMovable();     break;
         default:
             Tower::applyAbility(a);
     }
@@ -51,5 +54,11 @@ void HoneypotTower::applyAbility(AbilityType a) {
 void HoneypotTower::displayDetails(std::ostream& os) const {
     os << " slow:" << static_cast<int>((1.0f - spec().slow_factor) * 100.0f) << "%"
        << " range:" << spec().range;
-    if (biggerAura) os << " [BiggerAura]";
+    if (biggerAuraStacks > 0) os << " [BiggerAura x" << biggerAuraStacks << "]";
+}
+
+std::vector<AbilityType> HoneypotTower::getAppliedAbilities() const {
+    auto result = Tower::getAppliedAbilities();
+    for (int i = 0; i < biggerAuraStacks; ++i) result.push_back(AbilityType::BIGGER_AURA);
+    return result;
 }

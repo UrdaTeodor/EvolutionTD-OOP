@@ -63,9 +63,44 @@
     "is_boss":       false
   },
   "wave_10": {
+    "intro":         [],
+    "unlocks_after": [],
+    "base_budget":   100,
+    "offers_major":  true,
+    "is_boss":       false
+  },
+  "wave_11": {
+    "intro":         [],
+    "unlocks_after": [],
+    "base_budget":   100,
+    "offers_major":  true,
+    "is_boss":       false
+  },
+  "wave_12": {
+    "intro":         [],
+    "unlocks_after": [],
+    "base_budget":   100,
+    "offers_major":  true,
+    "is_boss":       false
+  },
+  "wave_13": {
+    "intro":         [],
+    "unlocks_after": [],
+    "base_budget":   100,
+    "offers_major":  true,
+    "is_boss":       false
+  },
+  "wave_14": {
+    "intro":         [],
+    "unlocks_after": [],
+    "base_budget":   100,
+    "offers_major":  true,
+    "is_boss":       false
+  },
+  "wave_15": {
     "intro":         ["iloveyou"],
     "unlocks_after": [],
-    "base_budget":   50,
+    "base_budget":   100,
     "offers_major":  true,
     "is_boss":       true
   }

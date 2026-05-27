@@ -87,6 +87,14 @@ target_sources(${MAIN_EXECUTABLE_NAME}
         src/EvolutionFactory.cpp
         src/DataRegistry.cpp
         src/Director.cpp
+        src/SceneManager.cpp
+        src/MainMenuScene.cpp
+        src/GameScene.cpp
+        src/ShopPanel.cpp
+        src/SaveManager.cpp
+        src/HighScores.cpp
+        src/PauseScene.cpp
+        src/GameOverScene.cpp
 )
 
 # NOTE: Add all defined targets (e.g. executables, libraries, etc. )

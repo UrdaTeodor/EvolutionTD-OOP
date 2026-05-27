@@ -8,9 +8,7 @@
 
 
 AntivirusTower::AntivirusTower(const TowerSpec& spec, int col, int row)
-    : Tower(spec, "antivirus", col, row),
-      doubleShot(false), fireTrail(false), multiTarget(false),
-      knockbackInterval(0), shotCounter(0), attackCooldown(0.0f) {}
+    : Tower(spec, "antivirus", col, row) {}
 
 std::unique_ptr<Tower> makeAntivirus(const TowerSpec& spec, int col, int row) {
     return std::make_unique<AntivirusTower>(spec, col, row);
@@ -56,41 +54,82 @@ std::pair<float, float> AntivirusTower::calculateInterceptPoint(const Enemy& ene
 }
 
 void AntivirusTower::attackEnemy(Enemy& enemy) {
-    std::pair<float, float> target = calculateInterceptPoint(enemy);
-    float ix = target.first;
-    float iy = target.second;
-    std::cout << "  " << getName() << " fires -> predicted pos ("
-              << static_cast<int>(ix) << "," << static_cast<int>(iy) << ")  "
-              << enemy.getName() << " HP: " << static_cast<int>(enemy.getCurrentHealth())
-              << " -> ";
+    // Stub pastrat pentru compatibilitate. Logica reala (cu buff/abilities) in update().
     enemy.takeDamage(spec().damage);
-    std::cout << static_cast<int>(enemy.getCurrentHealth()) << "\n";
 }
 
 void AntivirusTower::update(std::vector<Enemy>& enemies, float deltaTime,
-                            const GlobalStatBuffs& buffs) {
+                            const GlobalStatBuffs& buffs,
+                            const std::vector<std::pair<int, int>>& path) {
     attackCooldown -= deltaTime;
     if (attackCooldown > 0.0f) return;
 
-    float range = effectiveRange(buffs);
-    Enemy* target = nullptr;
-    float minDist = std::numeric_limits<float>::max();
-    for (auto& enemy : enemies) {
-        if (!enemy.isAlive() || !isInRange(enemy, range)) continue;
-        float dx = enemy.getX() - static_cast<float>(getX());
-        float dy = enemy.getY() - static_cast<float>(getY());
-        float dist = std::sqrt(dx * dx + dy * dy);
-        if (dist < minDist) {
-            minDist = dist;
-            target = &enemy;
+    // Stats efective cu buff aplicat (Mini / Rare via GlobalStatBuffs).
+    const auto& tb = buffs.for_type(getTypeKey());
+    float damage_effective       = spec().damage       * (1.0f + tb.damage_pct);
+    float attack_speed_effective = spec().attack_speed * (1.0f + tb.attack_speed_pct);
+    float range                  = effectiveRange(buffs);
+
+    // Pick targets. MULTI_TARGET -> top 2 nearest. Default -> top 1.
+    int max_targets = 1 + multiTargetStacks;
+    std::vector<Enemy*> targets;
+    {
+        // Vector de (dist, enemy*) sortat ascendent dupa dist.
+        std::vector<std::pair<float, Enemy*>> in_range;
+        for (auto& enemy : enemies) {
+            if (!enemy.isAlive() || !isInRange(enemy, range)) continue;
+            float dx = enemy.getX() - static_cast<float>(getX());
+            float dy = enemy.getY() - static_cast<float>(getY());
+            in_range.push_back({ std::sqrt(dx * dx + dy * dy), &enemy });
+        }
+        std::sort(in_range.begin(), in_range.end(),
+                  [](const auto& a, const auto& b) { return a.first < b.first; });
+        for (int i = 0; i < max_targets && i < static_cast<int>(in_range.size()); ++i) {
+            targets.push_back(in_range[i].second);
+        }
+    }
+    if (targets.empty()) return;
+
+    int   attacks_per_target = 1 + doubleShotStacks;
+    float damage_per_attack  = damage_effective;
+    bool  has_double_shot    = doubleShotStacks > 0;
+
+    for (Enemy* target : targets) {
+        Enemy* pierce_target = nullptr;
+        if (has_double_shot) {
+            float bestDist = 1e9f;
+            for (auto& e : enemies) {
+                if (!e.isAlive() || !isInRange(e, range)) continue;
+                bool in_primary = false;
+                for (Enemy* t : targets) if (&e == t) { in_primary = true; break; }
+                if (in_primary) continue;
+                float dx = e.getX() - static_cast<float>(getX());
+                float dy = e.getY() - static_cast<float>(getY());
+                float d  = std::sqrt(dx*dx + dy*dy);
+                if (d < bestDist) { bestDist = d; pierce_target = &e; }
+            }
+        }
+
+        for (int a = 0; a < attacks_per_target; ++a) {
+            target->takeDamage(damage_per_attack);
+            ++shotCounter;
+            if (knockbackInterval > 0 && shotCounter % knockbackInterval == 0) {
+                target->pushBack(1, path);
+            }
+            if (pierce_target && pierce_target->isAlive()) {
+                pierce_target->takeDamage(damage_per_attack);
+            }
+        }
+        if (fireTrailStacks > 0) {
+            float dps = damage_effective * 0.4f * fireTrailStacks;
+            target->applyFireTrail(dps, 4.0f);
+            if (pierce_target && pierce_target->isAlive()) {
+                pierce_target->applyFireTrail(dps, 4.0f);
+            }
         }
     }
 
-    if (target) {
-        attackEnemy(*target);
-        attackCooldown = 1.0f / spec().attack_speed;
-        ++shotCounter;
-    }
+    attackCooldown = 1.0f / attack_speed_effective;
 }
 
 char AntivirusTower::getDisplayChar() const { return 'A'; }
@@ -101,13 +140,13 @@ std::unique_ptr<Tower> AntivirusTower::clone() const {
 
 void AntivirusTower::applyAbility(AbilityType a) {
     switch (a) {
-        case AbilityType::DOUBLE_SHOT:        doubleShot   = true; break;
-        case AbilityType::FIRE_TRAIL:         fireTrail    = true; break;
-        case AbilityType::MULTI_TARGET:       multiTarget  = true; break;
-        case AbilityType::MOVABLE:            enableMovable(); break;
+        case AbilityType::DOUBLE_SHOT:        ++doubleShotStacks;  break;
+        case AbilityType::FIRE_TRAIL:         ++fireTrailStacks;   break;
+        case AbilityType::MULTI_TARGET:       ++multiTargetStacks; break;
+        case AbilityType::MOVABLE:            enableMovable();     break;
 
         default:
-            Tower::applyAbility(a);   // arunca IncompatibleEvolutionException
+            Tower::applyAbility(a);
     }
 }
 
@@ -115,10 +154,19 @@ void AntivirusTower::setKnockbackInterval(int N) {
     knockbackInterval = N;
 }
 
+std::vector<AbilityType> AntivirusTower::getAppliedAbilities() const {
+    auto result = Tower::getAppliedAbilities();
+    for (int i = 0; i < multiTargetStacks; ++i) result.push_back(AbilityType::MULTI_TARGET);
+    for (int i = 0; i < doubleShotStacks; ++i)  result.push_back(AbilityType::DOUBLE_SHOT);
+    for (int i = 0; i < fireTrailStacks; ++i)   result.push_back(AbilityType::FIRE_TRAIL);
+    if (knockbackInterval > 0) result.push_back(AbilityType::KNOCKBACK_EVERY_3);
+    return result;
+}
+
 void AntivirusTower::displayDetails(std::ostream& os) const {
     os << " dmg:" << spec().damage << " aspd:" << spec().attack_speed;
-    if (doubleShot)            os << " [DoubleShot]";
-    if (fireTrail)             os << " [FireTrail]";
-    if (multiTarget)           os << " [MultiTarget]";
+    if (doubleShotStacks  > 0) os << " [DoubleShot x"  << doubleShotStacks  << "]";
+    if (fireTrailStacks   > 0) os << " [FireTrail x"   << fireTrailStacks   << "]";
+    if (multiTargetStacks > 0) os << " [MultiTarget x" << multiTargetStacks << "]";
     if (knockbackInterval > 0) os << " [Knockback/" << knockbackInterval << "]";
 }

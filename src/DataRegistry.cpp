@@ -80,3 +80,10 @@ bool DataRegistry::hasWave(const std::string& key) const {
 bool DataRegistry::hasMap(const std::string& key) const {
     return maps_.find(key) != maps_.end();
 }
+
+std::vector<std::string> DataRegistry::towerKeys() const {
+    std::vector<std::string> keys;
+    keys.reserve(towers_.size());
+    for (const auto& [key, _] : towers_) keys.push_back(key);
+    return keys;
+}

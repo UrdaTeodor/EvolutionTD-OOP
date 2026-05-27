@@ -11,8 +11,7 @@ MythicEvolution::MythicEvolution(std::string name, int cost,
       source2(std::move(b)),
       mythicType(deriveType(source1->getAbility(), source2->getAbility())) {}
 
-// Copy constructor: deep-copy al surselor (clone polimorfic).
-// unique_ptr nu se copiaza singur, deci trebuie facem noi instante.
+// Copy constructor
 MythicEvolution::MythicEvolution(const MythicEvolution& other)
     : Evolution(other),
       source1(std::make_unique<AbilityEvolution>(*other.source1)),
@@ -20,9 +19,9 @@ MythicEvolution::MythicEvolution(const MythicEvolution& other)
       mythicType(other.mythicType) {}
 
 // Operator= COPY-AND-SWAP:
-// - parametrul 'other' e primit BY VALUE -> compilatorul a apelat deja copy constructor
-// - swap(*this, other) interschimba intern continutul
-// - cand 'other' iese din scope, ii destrugem vechea valoare (ce era in *this)
+// parametrul 'other' e primit by value -> compilatorul a apelat deja copy constructor
+// swap(*this, other) interschimba intern continutul
+// cand 'other' iese din scope, ii destrugem vechea valoare (ce era in *this)
 MythicEvolution& MythicEvolution::operator=(MythicEvolution other) {
     swap(*this, other);
     return *this;
@@ -55,7 +54,7 @@ std::unique_ptr<Evolution> MythicEvolution::clone() const {
     return std::make_unique<MythicEvolution>(*this);
 }
 
-// cppcheck-suppress unusedFunction // T3
+
 MythicEvolution::MythicType MythicEvolution::getMythicType() const { return mythicType; }
 
 

@@ -28,6 +28,7 @@ struct TowerSpec {
 
     // common
     bool  requires_path     = false;
+    int   max_count         = 999;   // hard cap per run 
     std::vector<std::string> supports_abilities;
 };
 
@@ -48,4 +49,5 @@ inline void from_json(const nlohmann::json& j, TowerSpec& s) {
     s.regen_rate       = j.value("regen_rate", 0.0f);
     s.block_radius     = j.value("block_radius", 0.0f);
     s.income_per_wave  = j.value("income_per_wave", 0);
+    s.max_count        = j.value("max_count", 999);
 }

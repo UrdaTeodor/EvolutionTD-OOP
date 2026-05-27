@@ -7,6 +7,7 @@
     "attack_speed": 1.0,
     "projectile_speed": 8.0,
     "requires_path": false,
+    "max_count": 6,
     "supports_abilities": ["MULTI_TARGET", "DOUBLE_SHOT", "FIRE_TRAIL", "KNOCKBACK_EVERY_3", "MOVABLE"]
   },
 
@@ -18,6 +19,7 @@
     "attack_speed": 4.0,
     "projectile_speed": 10.0,
     "requires_path": false,
+    "max_count": 6,
     "supports_abilities": ["MULTI_TARGET", "DOUBLE_SHOT", "FIRE_TRAIL", "KNOCKBACK_EVERY_3", "MOVABLE"]
   },
 
@@ -27,6 +29,7 @@
     "range": 1.5,
     "slow_factor": 0.8,
     "requires_path": false,
+    "max_count": 4,
     "supports_abilities": ["BIGGER_AURA", "MOVABLE"]
   },
 
@@ -38,6 +41,7 @@
     "regen_rate": 5.0,
     "block_radius": 0.6,
     "requires_path": true,
+    "max_count": 3,
     "supports_abilities": ["ARMORED", "REFLECTIVE_SHIELD", "MOVABLE"]
   },
 
@@ -47,6 +51,7 @@
     "range": 0.0,
     "income_per_wave": 15,
     "requires_path": false,
+    "max_count": 10,
     "supports_abilities": ["MOVABLE"]
   }
 }

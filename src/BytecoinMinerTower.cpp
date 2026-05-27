@@ -10,7 +10,8 @@ std::unique_ptr<Tower> makeBytecoinMiner(const TowerSpec& spec, int col, int row
 }
 
 void BytecoinMinerTower::update(std::vector<Enemy>& /*enemies*/, float /*deltaTime*/,
-                                const GlobalStatBuffs& /*buffs*/) {
+                                const GlobalStatBuffs& /*buffs*/,
+                                const std::vector<std::pair<int, int>>& /*path*/) {
     // Nu ataca.
 }
 

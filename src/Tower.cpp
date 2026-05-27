@@ -1,6 +1,7 @@
 #include "Tower.h"
 #include "GlobalStatBuffs.h"
 #include "GameException.h"
+#include <algorithm>
 #include <utility>
 
 Tower::Tower(const TowerSpec& spec, std::string type_key, int x, int y)
@@ -18,19 +19,34 @@ int Tower::collectIncome(const GlobalStatBuffs& /*buffs*/) const {
 bool Tower::requiresPath() const { return spec_->requires_path; }
 
 void Tower::enableMovable() { movable_ = true; }
-// cppcheck-suppress unusedFunction // T3  
-bool Tower::isMovable() const { return movable_; }
 
-int                Tower::getX()        const { return x_; }
-int                Tower::getY()        const { return y_; }
-int                Tower::getCost()     const { return spec_->cost; }
-float              Tower::getRange()    const { return spec_->range; }
+void Tower::recordTokenInvestment(int cost) { token_investment_ += cost; }
+int  Tower::getTokenInvestment() const      { return token_investment_; }
+
+int Tower::getX()       const { return x_; }
+int Tower::getY()       const { return y_; }
+int Tower::getCost()    const { return spec_->cost; }
+float Tower::getRange() const { return spec_->range; }
+
+
 const std::string& Tower::getName()     const { return spec_->display_name; }
 const std::string& Tower::getTypeKey()  const { return type_key_; }
 const TowerSpec&   Tower::spec()        const { return *spec_; }
 
 float Tower::effectiveRange(const GlobalStatBuffs& buffs) const {
     return spec_->range * (1.0f + buffs.for_type(type_key_).range_pct);
+}
+
+bool Tower::supports(AbilityType ab) const {
+    const auto& list = spec_->supports_abilities;
+    const std::string ab_str = abilityToString(ab);
+    return std::find(list.begin(), list.end(), ab_str) != list.end();
+}
+
+std::vector<AbilityType> Tower::getAppliedAbilities() const {
+    std::vector<AbilityType> result;
+    if (movable_) result.push_back(AbilityType::MOVABLE);
+    return result;
 }
 
 std::ostream& operator<<(std::ostream& os, const Tower& t) {

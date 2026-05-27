@@ -13,33 +13,37 @@ Wave::Wave(const Wave& other)
     : activeEnemies(other.activeEnemies),
       pendingEnemies(other.pendingEnemies),
       waveNumber(other.waveNumber),
-      spawnTimer(other.spawnTimer) {}
+      spawnTimer(other.spawnTimer),
+      spawn_interval_(other.spawn_interval_),
+      boss_escaped_(other.boss_escaped_) {}
 
 
 Wave& Wave::operator=(const Wave& other) {
     if (this != &other) {
-        activeEnemies  = other.activeEnemies;
-        pendingEnemies = other.pendingEnemies;
-        waveNumber     = other.waveNumber;
-        spawnTimer     = other.spawnTimer;
+        activeEnemies   = other.activeEnemies;
+        pendingEnemies  = other.pendingEnemies;
+        waveNumber      = other.waveNumber;
+        spawnTimer      = other.spawnTimer;
+        spawn_interval_ = other.spawn_interval_;
+        boss_escaped_   = other.boss_escaped_;
     }
     return *this;
 }
 
 
-Wave::~Wave() {
-}
+Wave::~Wave() {}
 
-// simuleaza al valului. Apelata din Game::runWave (src/Game.cpp).
 // towers e vector de unique_ptr<Tower> => apel polimorfic prin tower->update().
 int Wave::simulate(std::vector<std::unique_ptr<Tower>>& towers,
                    const std::vector<std::pair<int, int>>& path,
                    float deltaTime,
                    int& moneyEarned,
+                   int& killedCount,
                    const GlobalStatBuffs& buffs) {
     moneyEarned = 0;
+    killedCount = 0;
 
-    // 1. Genereaza urmatorul inamic din coada cand timerul expira.
+    //  Genereaza urmatorul inamic din coada cand timerul expira.
     // Spawn FIFO
     spawnTimer -= deltaTime;
     if (spawnTimer <= 0.0f && !pendingEnemies.empty()) {
@@ -48,20 +52,25 @@ int Wave::simulate(std::vector<std::unique_ptr<Tower>>& towers,
         spawned.placeAt(static_cast<float>(path[0].second),
                         static_cast<float>(path[0].first));
         activeEnemies.push_back(spawned);
-        spawnTimer = SPAWN_INTERVAL;
+        spawnTimer = spawn_interval_;
     }
 
-    // 2. Reseteaza incetinirea pe toti inamicii; turnurile Honeypot o vor reaplica
+    //  Reseteaza incetinirea pe toti inamicii; turnurile Honeypot o vor reaplica
     for (auto& enemy : activeEnemies) {
         enemy.resetSlow();
     }
 
-    // 3. Fiecare turn actioneaza 
+
     for (auto& tower : towers) {
-        tower->update(activeEnemies, deltaTime, buffs);
+        tower->update(activeEnemies, deltaTime, buffs, path);
     }
 
-    // 4. Misca fiecare inamic
+    // DoT FIRE_TRAIL: aplicat per-frame pe inamicii cu fire_trail_remaining > 0.
+    for (auto& enemy : activeEnemies) {
+        if (enemy.isAlive()) enemy.tickFireTrail(deltaTime);
+    }
+
+    // Misca fiecare inamic
     for (auto& enemy : activeEnemies) {
         if (enemy.isAlive()) {
             enemy.move(path, deltaTime);
@@ -74,10 +83,16 @@ int Wave::simulate(std::vector<std::unique_ptr<Tower>>& towers,
     for (const auto& enemy : activeEnemies) {
         if (!enemy.isAlive()) {
             moneyEarned += enemy.getReward();
+            killedCount += 1;
         } else if (enemy.hasReachedEnd(path)) {
-            playerDamage += static_cast<int>(enemy.getCurrentHealth());
+            int dmg = static_cast<int>(enemy.getCurrentHealth());
+            if (enemy.getName() == "ILOVEYOU") {
+                boss_escaped_ = true;
+                dmg = 99999;   // boss escape = defeat instant indiferent de HP rămas
+            }
+            playerDamage += dmg;
             std::cout << "  >> " << enemy.getName()
-                      << " breached the system! (-" << static_cast<int>(enemy.getCurrentHealth()) << " HP)\n";
+                      << " breached the system! (-" << dmg << " HP)\n";
         } else {
             survivors.push_back(enemy);
         }

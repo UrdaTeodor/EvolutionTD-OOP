@@ -1,5 +1,6 @@
 #include "Enemy.h"
 #include "EnemySpec.h"
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 
@@ -81,6 +82,50 @@ void Enemy::applySlow(float factor) {
 
 void Enemy::resetSlow() {
     slowFactor = 1.0f;
+}
+
+void Enemy::scaleHealth(float multiplier) {
+    if (multiplier <= 0.0f) return;
+    maxHealth     *= multiplier;
+    currentHealth  = maxHealth;
+}
+
+void Enemy::applyFireTrail(float dps, float duration_sec) {
+    // Refresh in loc de stacking — daca user aplica fire trail repetat, ramane la max.
+    fire_trail_dps_       = std::max(fire_trail_dps_, dps);
+    fire_trail_remaining_ = std::max(fire_trail_remaining_, duration_sec);
+}
+
+void Enemy::tickFireTrail(float dt) {
+    if (fire_trail_remaining_ <= 0.0f || fire_trail_dps_ <= 0.0f) return;
+    float burn_dt = std::min(dt, fire_trail_remaining_);
+    takeDamage(fire_trail_dps_ * burn_dt);
+    fire_trail_remaining_ -= burn_dt;
+    if (fire_trail_remaining_ <= 0.0f) {
+        fire_trail_dps_       = 0.0f;
+        fire_trail_remaining_ = 0.0f;
+    }
+}
+
+void Enemy::pushBack(int cells, const std::vector<std::pair<int, int>>& path) {
+    if (cells <= 0 || path.empty()) return;
+    // pathIndex e index-ul waypoint-ului URMATOR. Scadem cu cells (clamp la 1).
+    pathIndex -= cells;
+    if (pathIndex < 1) pathIndex = 1;
+    // Plasam exact la waypoint-ul anterior (path[pathIndex-1]).
+    x = static_cast<float>(path[pathIndex - 1].second);
+    y = static_cast<float>(path[pathIndex - 1].first);
+    // Recalculam vx/vy spre noul target (waypoint pathIndex).
+    if (pathIndex < static_cast<int>(path.size())) {
+        float nextX = static_cast<float>(path[pathIndex].second);
+        float nextY = static_cast<float>(path[pathIndex].first);
+        float dist  = distanceTo(nextX, nextY);
+        if (dist > 0.01f) {
+            float spd = getEffectiveSpeed();
+            vx = (nextX - x) / dist * spd;
+            vy = (nextY - y) / dist * spd;
+        }
+    }
 }
 
 bool Enemy::isAlive() const {

@@ -23,11 +23,11 @@ public:
     virtual ~Evolution() = default;
 
     // T3: aplica efectul prin context. StatEvolution prin buffs+target_type_key,
-    // AbilityEvolution prin target_tower (skill expression cu token).
+    // AbilityEvolution prin target_tower
     virtual void apply(const EvolutionContext& ctx) = 0;
 
-    // virtual constructor (clone):copierea polimorfica
-    // (folosit la inventar + la MythicEvolution care detine 2 surse)
+    // virtual constructor ,copierea polimorfica
+    // (folosit la inventar + la MythicEvolution care are2 surse)
     virtual std::unique_ptr<Evolution> clone() const = 0;
 
     const std::string& getName() const;

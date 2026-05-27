@@ -1,91 +1,142 @@
 #include "EvolutionFactory.h"
+#include "AbilityEvolution.h"
 #include "GameException.h"
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include <string>
 #include <utility>
 
-using R = Evolution::Rarity;
-using A = AbilityEvolution::AbilityType;
-
-//  Mini Stats (~5%)
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeMiniDamage() {
-    return std::make_unique<StatEvolution>("MiniDamage", 20, R::MINI, 0.05f, 0.0f, 0.0f, 0.0f, 0.0f);
-}
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeMiniRange() {
-    return std::make_unique<StatEvolution>("MiniRange", 20, R::MINI, 0.0f, 0.05f, 0.0f, 0.0f, 0.0f);
-}
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeMiniAttackSpeed() {
-    return std::make_unique<StatEvolution>("MiniAttackSpeed", 20, R::MINI, 0.0f, 0.0f, 0.05f, 0.0f, 0.0f);
-}
-
-//Rare (~15%)
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeRareDamage() {
-    return std::make_unique<StatEvolution>("RareDamage", 60, R::RARE, 0.15f, 0.0f, 0.0f, 0.0f, 0.0f);
-}
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeRareRange() {
-    return std::make_unique<StatEvolution>("RareRange", 60, R::RARE, 0.0f, 0.15f, 0.0f, 0.0f, 0.0f);
-}
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeRareAttackSpeed() {
-    return std::make_unique<StatEvolution>("RareAttackSpeed", 60, R::RARE, 0.0f, 0.0f, 0.15f, 0.0f, 0.0f);
-}
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeRareHP() {
-    return std::make_unique<StatEvolution>("RareHP", 60, R::RARE, 0.0f, 0.0f, 0.0f, 0.15f, 0.0f);
+namespace {
+    nlohmann::json loadJson(const std::string& path) {
+        std::ifstream in(path);
+        if (!in) {
+            throw DataException("Nu pot deschide fisierul JSON: " + path);
+        }
+        nlohmann::json j;
+        try {
+            in >> j;
+        } catch (const nlohmann::json::parse_error& err) {
+            throw DataException("Parse error in " + path + ": " + err.what());
+        }
+        return j;
+    }
 }
 
-// Epic
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeEpicMultiTarget() {
-    return std::make_unique<AbilityEvolution>("EpicMultiTarget", 100, R::EPIC, A::MULTI_TARGET);
-}
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeEpicBiggerAura() {
-    return std::make_unique<AbilityEvolution>("EpicBiggerAura", 100, R::EPIC, A::BIGGER_AURA);
-}
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeEpicArmored() {
-    return std::make_unique<AbilityEvolution>("EpicArmored", 100, R::EPIC, A::ARMORED);
+// =====================================================================
+// MiniEvolutionFactory
+// =====================================================================
+
+MiniEvolutionFactory::MiniEvolutionFactory(const std::string& path) {
+    nlohmann::json j = loadJson(path);
+    if (!j.contains("mini")) {
+        throw DataException(path + ": lipseste cheia 'mini'");
+    }
+    for (const auto& mini_j : j.at("mini")) {
+        MiniStatSpec spec = mini_j.get<MiniStatSpec>();
+        // Ponderi uniforme pentru Mini (toate la fel de probabile la sample).
+        table_.add(std::move(spec), 1.0f);
+    }
+    if (table_.empty()) {
+        throw DataException(path + ": pool 'mini' gol");
+    }
 }
 
-//  Legendary
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeLegendaryDoubleShot() {
-    return std::make_unique<AbilityEvolution>("LegendaryDoubleShot", 200, R::LEGENDARY, A::DOUBLE_SHOT);
-}
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeLegendaryFireTrail() {
-    return std::make_unique<AbilityEvolution>("LegendaryFireTrail", 200, R::LEGENDARY, A::FIRE_TRAIL);
-}
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeLegendaryKnockback() {
-    return std::make_unique<AbilityEvolution>("LegendaryKnockback", 200, R::LEGENDARY, A::KNOCKBACK_EVERY_3);
-}
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeLegendaryReflectiveShield() {
-    return std::make_unique<AbilityEvolution>("LegendaryReflectShield", 200, R::LEGENDARY, A::REFLECTIVE_SHIELD);
-}
-// cppcheck-suppress unusedFunction // T3
-std::unique_ptr<Evolution> makeLegendaryMovable() {
-    return std::make_unique<AbilityEvolution>("LegendaryMovable", 200, R::LEGENDARY, A::MOVABLE);
+int MiniEvolutionFactory::size() const {
+    return static_cast<int>(table_.size());
 }
 
-//  Mythic 
-std::unique_ptr<Evolution> craftMythic(
-        std::unique_ptr<AbilityEvolution> a,
-        std::unique_ptr<AbilityEvolution> b) {
-    if (!a || !b)
+const MiniStatSpec& MiniEvolutionFactory::sample(std::mt19937& rng) const {
+    return table_.sample(rng);
+}
+
+// =====================================================================
+// MajorEvolutionFactory
+// =====================================================================
+
+MajorEvolutionFactory::MajorEvolutionFactory(const std::string& path) {
+    nlohmann::json j = loadJson(path);
+    if (!j.contains("major") || !j.contains("rarity_weights")) {
+        throw DataException(path + ": lipsesc cheile 'major' / 'rarity_weights'");
+    }
+    const auto& rar_weights = j.at("rarity_weights");
+
+    for (const auto& major_j : j.at("major")) {
+        MajorEvolutionSpec spec = major_j.get<MajorEvolutionSpec>();
+        // Pondere pe rarity (Rare > Epic > Legendary in mod normal).
+        std::string rar_str;
+        major_j.at("rarity").get_to(rar_str);
+        float weight = rar_weights.value(rar_str, 1.0f);
+        table_.add(std::move(spec), weight);
+    }
+    if (table_.empty()) {
+        throw DataException(path + ": pool 'major' gol");
+    }
+}
+
+int MajorEvolutionFactory::size() const {
+    return static_cast<int>(table_.size());
+}
+
+const MajorEvolutionSpec& MajorEvolutionFactory::sample(std::mt19937& rng) const {
+    return table_.sample(rng);
+}
+
+
+// MythicEvolutionFactory
+
+
+MythicEvolutionFactory::MythicEvolutionFactory(const std::string& path) {
+    nlohmann::json j = loadJson(path);
+    if (!j.contains("mythic_recipes")) {
+        throw DataException(path + ": lipseste cheia 'mythic_recipes'");
+    }
+    for (const auto& recipe_j : j.at("mythic_recipes")) {
+        recipes_.push_back(recipe_j.get<MythicRecipeSpec>());
+    }
+    mythic_cost_ = j.value("mythic_cost", 500);
+
+    if (recipes_.empty()) {
+        throw DataException(path + ": niciun mythic_recipe definit");
+    }
+}
+
+int MythicEvolutionFactory::size() const {
+    return static_cast<int>(recipes_.size());
+}
+
+bool MythicEvolutionFactory::canCraft(AbilityType a, AbilityType b,
+                                      std::string* outName) const {
+    for (const auto& r : recipes_) {
+        bool match = (r.ingredient_a == a && r.ingredient_b == b) ||
+                     (r.ingredient_a == b && r.ingredient_b == a);
+        if (match) {
+            if (outName) *outName = r.result_name;
+            return true;
+        }
+    }
+    return false;
+}
+
+std::unique_ptr<MythicEvolution> MythicEvolutionFactory::craft(
+        const EvolutionToken& a, const EvolutionToken& b) const {
+    if (a.rarity != Evolution::Rarity::LEGENDARY ||
+        b.rarity != Evolution::Rarity::LEGENDARY) {
         throw IncompatibleEvolutionException(
-            "craftMythic: cel putin una dintre evolutii e null");
-    if (a->getRarity() != Evolution::Rarity::LEGENDARY ||
-        b->getRarity() != Evolution::Rarity::LEGENDARY)
+            "MythicEvolutionFactory.craft: ambele token-uri trebuie sa fie Legendary");
+    }
+
+    std::string result_name;
+    if (!canCraft(a.ability, b.ability, &result_name)) {
         throw IncompatibleEvolutionException(
-            "craftMythic: ambele evolutii trebuie sa fie Legendary");
-    // arunca IncompatibleEvolutionException daca combo-ul e invalid.
+            "MythicEvolutionFactory.craft: combinatia de abilitati nu match-uieste nicio reteta");
+    }
+
+    // Reconstruim cele 2 AbilityEvolution surse pe care MythicEvolution le detine.
+    auto src_a = std::make_unique<AbilityEvolution>(
+        a.name, 500, Evolution::Rarity::LEGENDARY, a.ability);
+    auto src_b = std::make_unique<AbilityEvolution>(
+        b.name, 500, Evolution::Rarity::LEGENDARY, b.ability);
 
     return std::make_unique<MythicEvolution>(
-        "MythicCombo", 500, std::move(a), std::move(b));
+        result_name, mythic_cost_, std::move(src_a), std::move(src_b));
 }

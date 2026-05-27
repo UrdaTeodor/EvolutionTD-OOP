@@ -1,0 +1,57 @@
+{
+  "mini": [
+    { "name": "DamageBuff",      "cost": 25, "stat_field": "damage_pct",       "stat_value": 0.05 },
+    { "name": "RangeBuff",       "cost": 25, "stat_field": "range_pct",        "stat_value": 0.05 },
+    { "name": "AttackSpeedBuff", "cost": 25, "stat_field": "attack_speed_pct", "stat_value": 0.05 },
+    { "name": "MaxHPBuff",       "cost": 25, "stat_field": "max_hp_pct",       "stat_value": 0.05 },
+    { "name": "RegenBuff",       "cost": 25, "stat_field": "regen_pct",        "stat_value": 0.05 },
+    { "name": "SlowBuff",        "cost": 25, "stat_field": "slow_pct",         "stat_value": 0.05 },
+    { "name": "IncomeBuff",      "cost": 25, "stat_field": "income_pct",       "stat_value": 0.20 }
+  ],
+
+  "major": [
+    { "name": "Damage",      "cost": 100, "rarity": "RARE", "kind": "STAT",
+      "stat_field": "damage_pct",       "stat_value": 0.30 },
+    { "name": "Range",       "cost": 100, "rarity": "RARE", "kind": "STAT",
+      "stat_field": "range_pct",        "stat_value": 0.30 },
+    { "name": "AttackSpeed", "cost": 100, "rarity": "RARE", "kind": "STAT",
+      "stat_field": "attack_speed_pct", "stat_value": 0.30 },
+    { "name": "MaxHP",       "cost": 100, "rarity": "RARE", "kind": "STAT",
+      "stat_field": "max_hp_pct",       "stat_value": 0.30 },
+
+    { "name": "MultiTarget", "cost": 200, "rarity": "EPIC", "kind": "ABILITY",
+      "ability": "MULTI_TARGET" },
+    { "name": "BiggerAura",  "cost": 200, "rarity": "EPIC", "kind": "ABILITY",
+      "ability": "BIGGER_AURA" },
+    { "name": "Armored",     "cost": 200, "rarity": "EPIC", "kind": "ABILITY",
+      "ability": "ARMORED" },
+
+    { "name": "DoubleShot",    "cost": 500, "rarity": "LEGENDARY", "kind": "ABILITY",
+      "ability": "DOUBLE_SHOT" },
+    { "name": "FireTrail",     "cost": 500, "rarity": "LEGENDARY", "kind": "ABILITY",
+      "ability": "FIRE_TRAIL" },
+    { "name": "Knockback",     "cost": 500, "rarity": "LEGENDARY", "kind": "ABILITY",
+      "ability": "KNOCKBACK_EVERY_3" },
+    { "name": "ReflectShield", "cost": 500, "rarity": "LEGENDARY", "kind": "ABILITY",
+      "ability": "REFLECTIVE_SHIELD" },
+    { "name": "Movable",       "cost": 500, "rarity": "LEGENDARY", "kind": "ABILITY",
+      "ability": "MOVABLE" }
+  ],
+
+  "rarity_weights": {
+    "RARE":      50.0,
+    "EPIC":      30.0,
+    "LEGENDARY": 20.0
+  },
+
+  "mythic_recipes": [
+    { "ingredient_a": "DOUBLE_SHOT",       "ingredient_b": "FIRE_TRAIL",
+      "result_name": "PhoenixBarrage" },
+    { "ingredient_a": "KNOCKBACK_EVERY_3", "ingredient_b": "MOVABLE",
+      "result_name": "RovingBruiser" },
+    { "ingredient_a": "REFLECTIVE_SHIELD", "ingredient_b": "MOVABLE",
+      "result_name": "ShieldedRunner" }
+  ],
+
+  "mythic_cost": 2000
+}
