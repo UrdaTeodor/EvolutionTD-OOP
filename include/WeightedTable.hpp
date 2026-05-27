@@ -58,6 +58,5 @@ public:
     }
 
     //rendering UI (afisare carduri) si save.
-    const std::vector<T>&     items()   const { return items_; }
-    const std::vector<float>& weights() const { return weights_; }
+    const std::vector<T>& items() const { return items_; }
 };

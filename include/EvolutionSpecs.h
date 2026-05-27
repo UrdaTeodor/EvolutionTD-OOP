@@ -57,6 +57,7 @@ inline Evolution::Rarity rarityFromString(const std::string& s) {
     throw std::invalid_argument("Rarity necunoscuta: " + s);
 }
 
+// cppcheck-suppress unusedFunction
 inline const char* rarityToString(Evolution::Rarity r) {
     switch (r) {
         case Evolution::Rarity::MINI:      return "Mini";
@@ -105,6 +106,7 @@ struct MythicRecipeSpec {
     std::string result_name;
 };
 
+// cppcheck-suppress unusedFunction
 inline void from_json(const nlohmann::json& j, MythicRecipeSpec& s) {
     std::string a_str, b_str;
     j.at("ingredient_a").get_to(a_str);

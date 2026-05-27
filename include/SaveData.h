@@ -77,22 +77,28 @@ struct SaveData {
 };
 
 // nlohmann macros genereaza automat to_json / from_json (folosesc ADL).
+// cppcheck-suppress unknownMacro
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SaveData::TowerEntry,
     type_key, col, row, applied_abilities, token_investment)
 
+// cppcheck-suppress unknownMacro
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SaveData::BuffEntry,
     type_key, damage_pct, range_pct, attack_speed_pct,
     max_hp_pct, regen_pct, slow_pct, income_pct)
 
+// cppcheck-suppress unknownMacro
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SaveData::MiniSlot,
     name, cost, stat_field, stat_value, target_type, bought)
 
+// cppcheck-suppress unknownMacro
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SaveData::MajorSlot,
     name, cost, rarity, kind, stat_field, stat_value, ability, target_type, bought)
 
+// cppcheck-suppress unknownMacro
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SaveData::TokenEntry,
     name, ability, rarity, cost)
 
+// cppcheck-suppress unknownMacro
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SaveData,
     map_id, wave_number, player_hp, money,
     total_kills, total_money_earned, player_weight, endless_active,

@@ -35,5 +35,6 @@ public:
     }
 
     // Iterare pentru save/load.
+    // cppcheck-suppress unusedFunction
     const std::unordered_map<std::string, TowerTypeBuffs>& all() const { return per_type_; }
 };

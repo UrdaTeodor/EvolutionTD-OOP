@@ -17,6 +17,7 @@ public:
     explicit Director(std::mt19937& rng);
 
     //dupa copy/swap pe Game, rng_ pointerul ramane si trb corectat
+    // cppcheck-suppress unusedFunction
     void setRng(std::mt19937& rng){rng_ = &rng;}
 
     // Adauga un EnemySpec in pool (apelat la endWave dupa ce wave_N.unlocks_after se aplica).

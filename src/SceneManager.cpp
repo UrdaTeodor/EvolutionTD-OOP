@@ -17,6 +17,7 @@ void SceneManager::requestReplace(std::unique_ptr<Scene> scene) {
     pending_scene_ = std::move(scene);
 }
 
+// cppcheck-suppress unusedFunction
 void SceneManager::requestReplaceAll(std::unique_ptr<Scene> scene) {
     pending_type_  = PendingType::REPLACE_ALL;
     pending_scene_ = std::move(scene);

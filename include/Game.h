@@ -85,39 +85,56 @@ public:
 
     void takeSnapshot();
     bool restoreSnapshot();
+    // cppcheck-suppress unusedFunction
     int  getWaveNumber() const { return waveNumber; }
 
     // Getters pentru rendering
+    // cppcheck-suppress unusedFunction
     const std::vector<std::unique_ptr<Tower>>& getTowers() const { return towers; }
+    // cppcheck-suppress unusedFunction
     const Wave& getCurrentWave() const { return currentWave; }
+    // cppcheck-suppress unusedFunction
     const std::vector<std::pair<int, int>>& getPath() const { return path; }
+    // cppcheck-suppress unusedFunction
     int getPlayerHP() const { return playerHP; }
+    // cppcheck-suppress unusedFunction
     int getMoney() const { return money; }
 
+    // cppcheck-suppress unusedFunction
     const GlobalStatBuffs& getBuffs() const { return buffs_; }
+    // cppcheck-suppress unusedFunction
     GlobalStatBuffs&         mutableBuffs() { return buffs_; }
 
 
     // ShopPanel reutilizeaza RNG-ul Game-ului pentru ca shop_state sa fie deterministic
+    // cppcheck-suppress unusedFunction
     std::mt19937&  mutableRng() { return rng_; }
 
 
     // ShopPanel decrementeaza direct la cumparare (apare un check `money < cost` inainte).
+    // cppcheck-suppress unusedFunction
     int&  mutableMoney() { return money; }
 
     // Statistici cumulative (resetate per run).
+    // cppcheck-suppress unusedFunction
     int  getTotalKills()       const { return total_kills_; }
+    // cppcheck-suppress unusedFunction
     int  getTotalMoneyEarned() const { return total_money_earned_; }
+    // cppcheck-suppress unusedFunction
     int& mutableWeight()             { return player_weight_; }
+    // cppcheck-suppress unusedFunction
     bool isEndlessActive()     const { return endless_active_; }
+    // cppcheck-suppress unusedFunction
     void enableEndless()             { endless_active_ = true; }
 
+    // cppcheck-suppress unusedFunction
     const std::string& getMapId() const { return current_map_id_; }
 
     // Save / Load
 
     void serializeTo(SaveData& out) const;
     void restoreFrom(const SaveData& src);
+    // cppcheck-suppress unusedFunction
     int  getMaxWaves()   const { return max_waves_; }
 
     void placeTower(int typeChoice, int x, int y);

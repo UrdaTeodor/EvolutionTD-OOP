@@ -43,6 +43,7 @@ void HighScores::save() const {
     out << j.dump(2);
 }
 
+// cppcheck-suppress unusedFunction
 void HighScores::recordRun(const std::string& map_id,
                            int wave_reached, int kills, int money_earned) {
     MapStats& s = stats_[map_id];
@@ -53,6 +54,7 @@ void HighScores::recordRun(const std::string& map_id,
     save();
 }
 
+// cppcheck-suppress unusedFunction
 HighScores::MapStats HighScores::getStats(const std::string& map_id) const {
     auto it = stats_.find(map_id);
     if (it == stats_.end()) return {};

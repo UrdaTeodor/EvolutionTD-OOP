@@ -33,8 +33,11 @@ public:
     void setFont(const sf::Font& font);
 
     // Open / Close shop overlay.
+    // cppcheck-suppress unusedFunction
     void toggle()             { visible_ = !visible_; }
+    // cppcheck-suppress unusedFunction
     bool visible() const      { return visible_; }
+    // cppcheck-suppress unusedFunction
     void setVisible(bool v)   { visible_ = v; }
 
     // Render overlay
@@ -44,10 +47,14 @@ public:
     ClickResult handleClick(float mx, float my, int& money, int& player_weight, std::string& outErr);
 
     //Token apply mode (folosit de GameScene)
+    // cppcheck-suppress unusedFunction
     bool hasActiveToken() const { return active_token_idx_ >= 0; }
     const EvolutionToken* activeToken() const;
+    // cppcheck-suppress unusedFunction
     int  activeTokenIndex() const { return active_token_idx_; }
+    // cppcheck-suppress unusedFunction
     void setActiveTokenIndex(int idx) { active_token_idx_ = idx; }
+    // cppcheck-suppress unusedFunction
     const std::vector<EvolutionToken>& getTokens() const { return tokens_; }
 
     // Scoate token-ul activ din inventar (apelat dupa apply reusit pe tower).
@@ -57,6 +64,7 @@ public:
     void cancelActiveToken();
 
     // Folosit pentru label butonului "OPEN SHOP" in left panel.
+    // cppcheck-suppress unusedFunction
     int tokenCount() const { return static_cast<int>(tokens_.size()); }
 
     // Total carduri active in offer (pt status / debug).

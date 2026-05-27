@@ -84,6 +84,7 @@ void Enemy::resetSlow() {
     slowFactor = 1.0f;
 }
 
+// cppcheck-suppress unusedFunction
 void Enemy::scaleHealth(float multiplier) {
     if (multiplier <= 0.0f) return;
     maxHealth     *= multiplier;
@@ -139,9 +140,12 @@ bool Enemy::hasReachedEnd(const std::vector<std::pair<int, int>>& path) const {
 float Enemy::getX()             const { return x; }
 float Enemy::getY()             const { return y; }
 float Enemy::getCurrentHealth() const { return currentHealth; }
+// cppcheck-suppress unusedFunction
 float Enemy::getMaxHealth()     const { return maxHealth; }
 float Enemy::getEffectiveSpeed() const { return speed * slowFactor; }
+// cppcheck-suppress unusedFunction
 float Enemy::getVelocityX()     const { return vx; }
+// cppcheck-suppress unusedFunction
 float Enemy::getVelocityY()     const { return vy; }
 const std::string& Enemy::getName() const { return name; }
 int Enemy::getReward()          const { return reward; }

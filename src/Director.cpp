@@ -5,6 +5,7 @@
 Director::Director(std::mt19937& rng)
     : rng_(&rng) {}
 
+// cppcheck-suppress unusedFunction
 void Director::unlock(const std::string& key, const EnemySpec& spec, float weight) {
     // evita duplicate (idempotent la mai multe unlock-uri pentru aceeasi cheie)
     if (std::find(unlocked_keys_.begin(), unlocked_keys_.end(), key) != unlocked_keys_.end()) {
@@ -14,6 +15,7 @@ void Director::unlock(const std::string& key, const EnemySpec& spec, float weigh
     unlocked_keys_.push_back(key);
 }
 
+// cppcheck-suppress unusedFunction
 std::vector<EnemySpec> Director::generateSpawns(int budget) const {
     std::vector<EnemySpec> out;
     if (pool_.empty() || budget <= 0) return out;

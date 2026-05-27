@@ -49,6 +49,7 @@ const EnemySpec& DataRegistry::getEnemy(const std::string& key) const {
     return it->second;
 }
 
+// cppcheck-suppress unusedFunction
 const WaveSpec& DataRegistry::getWave(const std::string& key) const {
     auto it = waves_.find(key);
     if (it == waves_.end()) {
@@ -57,6 +58,7 @@ const WaveSpec& DataRegistry::getWave(const std::string& key) const {
     return it->second;
 }
 
+// cppcheck-suppress unusedFunction
 const MapSpec& DataRegistry::getMap(const std::string& key) const {
     auto it = maps_.find(key);
     if (it == maps_.end()) {
@@ -65,10 +67,12 @@ const MapSpec& DataRegistry::getMap(const std::string& key) const {
     return it->second;
 }
 
+// cppcheck-suppress unusedFunction
 bool DataRegistry::hasEnemy(const std::string& key) const {
     return enemies_.find(key) != enemies_.end();
 }
 
+// cppcheck-suppress unusedFunction
 std::vector<std::string> DataRegistry::towerKeys() const {
     std::vector<std::string> keys;
     keys.reserve(towers_.size());

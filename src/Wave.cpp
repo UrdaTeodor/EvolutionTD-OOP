@@ -34,6 +34,7 @@ Wave& Wave::operator=(const Wave& other) {
 Wave::~Wave() {}
 
 // towers e vector de unique_ptr<Tower> => apel polimorfic prin tower->update().
+// cppcheck-suppress unusedFunction
 int Wave::simulate(std::vector<std::unique_ptr<Tower>>& towers,
                    const std::vector<std::pair<int, int>>& path,
                    float deltaTime,
@@ -106,10 +107,12 @@ void Wave::addEnemy(const Enemy& enemy) {
     pendingEnemies.push_back(enemy);
 }
 
+// cppcheck-suppress unusedFunction
 bool Wave::allDefeated() const {
     return pendingEnemies.empty() && activeEnemies.empty();
 }
 
+// cppcheck-suppress unusedFunction
 const std::vector<Enemy>& Wave::getActiveEnemies() const {
     return activeEnemies;
 }

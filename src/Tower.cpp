@@ -18,12 +18,15 @@ int Tower::collectIncome(const GlobalStatBuffs& /*buffs*/) const {
 
 void Tower::enableMovable() { movable_ = true; }
 
+// cppcheck-suppress unusedFunction
 void Tower::recordTokenInvestment(int cost) { token_investment_ += cost; }
+// cppcheck-suppress unusedFunction
 int  Tower::getTokenInvestment() const      { return token_investment_; }
 
 int Tower::getX()       const { return x_; }
 int Tower::getY()       const { return y_; }
 int Tower::getCost()    const { return spec_->cost; }
+// cppcheck-suppress unusedFunction
 float Tower::getRange() const { return spec_->range; }
 
 
@@ -35,6 +38,7 @@ float Tower::effectiveRange(const GlobalStatBuffs& buffs) const {
     return spec_->range * (1.0f + buffs.for_type(type_key_).range_pct);
 }
 
+// cppcheck-suppress unusedFunction
 bool Tower::supports(AbilityType ab) const {
     const auto& list = spec_->supports_abilities;
     const std::string ab_str = abilityToString(ab);

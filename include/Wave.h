@@ -20,7 +20,9 @@ public:
 
     Wave(int waveNumber, std::vector<Enemy> enemies);
 
+    // cppcheck-suppress unusedFunction
     void setSpawnInterval(float seconds) { spawn_interval_ = seconds; }
+    // cppcheck-suppress unusedFunction
     bool bossEscaped() const { return boss_escaped_; }
 
 
