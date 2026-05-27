@@ -10,10 +10,6 @@
 AntivirusTower::AntivirusTower(const TowerSpec& spec, int col, int row)
     : Tower(spec, "antivirus", col, row) {}
 
-std::unique_ptr<Tower> makeAntivirus(const TowerSpec& spec, int col, int row) {
-    return std::make_unique<AntivirusTower>(spec, col, row);
-}
-
 bool AntivirusTower::isInRange(const Enemy& enemy, float effectiveRange) const {
     float dx = enemy.getX() - static_cast<float>(getX());
     float dy = enemy.getY() - static_cast<float>(getY());

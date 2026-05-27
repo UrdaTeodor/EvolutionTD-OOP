@@ -10,10 +10,6 @@ FirewallTower::FirewallTower(const TowerSpec& spec, int col, int row)
       currentHP(spec.max_hp),
       reflectiveShield(false), armored(false) {}
 
-std::unique_ptr<Tower> makeFirewall(const TowerSpec& spec, int col, int row) {
-    return std::make_unique<FirewallTower>(spec, col, row);
-}
-
 void FirewallTower::blockEnemy(Enemy& enemy) {
     // Standard block: absoarbe enemy.HP din proprul HP. ARMORED reduce costul la 50%.
     if (enemy.getCurrentHealth() <= currentHP) {

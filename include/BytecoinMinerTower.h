@@ -19,5 +19,3 @@ public:
 protected:
     void displayDetails(std::ostream& os) const override;
 };
-
-std::unique_ptr<Tower> makeBytecoinMiner(const TowerSpec& spec, int col, int row);

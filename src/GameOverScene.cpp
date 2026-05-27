@@ -6,7 +6,6 @@
 
 namespace {
     constexpr float WIN_W = 1920.0f;
-    constexpr float WIN_H = 1080.0f;
     constexpr float BTN_W = 380.0f;
     constexpr float BTN_H = 90.0f;
     constexpr float BTN_GAP = 30.0f;
@@ -94,10 +93,6 @@ GameOverScene::GameOverScene(SceneManager& manager, const DataRegistry& registry
     place(restart_btn_, 0, "Restart",   sf::Color( 60, 110,  80));
     place(menu_btn_,    1, "Main Menu", sf::Color( 80,  90, 130));
     place(quit_btn_,    2, "Quit Game", sf::Color(140,  80,  80));
-}
-
-void GameOverScene::setupButton(MenuButton& /*btn*/, const char* /*text*/, float /*y*/, sf::Color /*fill*/) {
-    // Lasat declarat in .h pentru paritate cu PauseScene/MainMenuScene
 }
 
 void GameOverScene::update(float /*dt*/) {}

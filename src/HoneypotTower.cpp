@@ -6,10 +6,6 @@
 HoneypotTower::HoneypotTower(const TowerSpec& spec, int col, int row)
     : Tower(spec, "honeypot", col, row) {}
 
-std::unique_ptr<Tower> makeHoneypot(const TowerSpec& spec, int col, int row) {
-    return std::make_unique<HoneypotTower>(spec, col, row);
-}
-
 void HoneypotTower::update(std::vector<Enemy>& enemies, float /*deltaTime*/,
                            const GlobalStatBuffs& buffs,
                            const std::vector<std::pair<int, int>>& /*path*/) {

@@ -5,10 +5,6 @@
 BytecoinMinerTower::BytecoinMinerTower(const TowerSpec& spec, int col, int row)
     : Tower(spec, "bytecoinminer", col, row) {}
 
-std::unique_ptr<Tower> makeBytecoinMiner(const TowerSpec& spec, int col, int row) {
-    return std::make_unique<BytecoinMinerTower>(spec, col, row);
-}
-
 void BytecoinMinerTower::update(std::vector<Enemy>& /*enemies*/, float /*deltaTime*/,
                                 const GlobalStatBuffs& /*buffs*/,
                                 const std::vector<std::pair<int, int>>& /*path*/) {

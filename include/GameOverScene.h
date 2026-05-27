@@ -47,6 +47,4 @@ private:
     MenuButton restart_btn_;
     MenuButton menu_btn_;
     MenuButton quit_btn_;
-
-    void setupButton(MenuButton& btn, const char* text, float y, sf::Color fill);
 };

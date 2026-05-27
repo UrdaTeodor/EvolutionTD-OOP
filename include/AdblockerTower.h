@@ -32,5 +32,3 @@ public:
 protected:
     void displayDetails(std::ostream& os) const override;
 };
-
-std::unique_ptr<Tower> makeAdblocker(const TowerSpec& spec, int col, int row);

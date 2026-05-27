@@ -298,14 +298,14 @@ void Game::placeTower(int typeChoice, int col, int row) {
 
     std::unique_ptr<Tower> newTower;
     switch (typeChoice) {
-        case 1: newTower = makeAntivirus(spec, col, row); break;
-        case 2: newTower = makeAdblocker(spec, col, row); break;
-        case 3: newTower = makeHoneypot(spec, col, row);  break;
-        case 4: newTower = makeFirewall(spec, col, row);  break;
-        case 5: newTower = makeBytecoinMiner(spec, col, row); break;
+        case 1: newTower = std::make_unique<AntivirusTower>(spec, col, row);     break;
+        case 2: newTower = std::make_unique<AdblockerTower>(spec, col, row);     break;
+        case 3: newTower = std::make_unique<HoneypotTower>(spec, col, row);      break;
+        case 4: newTower = std::make_unique<FirewallTower>(spec, col, row);      break;
+        case 5: newTower = std::make_unique<BytecoinMinerTower>(spec, col, row); break;
     }
 
-    bool needsPath = newTower->requiresPath();
+    bool needsPath = newTower->spec().requires_path;
 
     if (!isValidPlacement(col, row, needsPath)) {
         std::string pos = "(" + std::to_string(col) + "," + std::to_string(row) + ")";
@@ -389,7 +389,7 @@ std::ostream& operator<<(std::ostream& os, const Game& g) {
     os << "[ System HP: " << g.playerHP
        << " | Credits: " << g.money
        << " | Wave: " << displayWave << "/" << g.max_waves_
-       << " | Enemies on field: " << g.currentWave.activeCount() << " ]\n";
+       << " | Enemies on field: " << g.currentWave.getActiveEnemies().size() << " ]\n";
     return os;
 }
 

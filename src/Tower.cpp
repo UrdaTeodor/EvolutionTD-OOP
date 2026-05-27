@@ -16,8 +16,6 @@ int Tower::collectIncome(const GlobalStatBuffs& /*buffs*/) const {
     return 0;   // turnurile nonMiner nu dau venit
 }
 
-bool Tower::requiresPath() const { return spec_->requires_path; }
-
 void Tower::enableMovable() { movable_ = true; }
 
 void Tower::recordTokenInvestment(int cost) { token_investment_ += cost; }

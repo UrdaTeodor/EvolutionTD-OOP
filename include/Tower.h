@@ -37,8 +37,6 @@ public:
 
     virtual int collectIncome(const GlobalStatBuffs& buffs) const;
 
-    bool requiresPath() const;
-
     // Ability MOVABLe)
     void enableMovable();
 

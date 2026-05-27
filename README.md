@@ -100,7 +100,7 @@ panel UI in GameScene. Refresh la final de wave: 3 carduri Mini + 2 carduri Majo
 
 **Director + 15 wave-uri:**
 
-Director tine WeightedTable<EnemySpec> cu inamici deblocati progresiv prin WaveSpec.unlocks_after. generateSpawns(budget) greedy spend (selecteaza random ponderat pana cheltuie tot budget-ul). Endless mode (dupa boss val 15): budget scaleaza cu player_weight (cumparari shop) ca run-urile sa nu fie usoare la fiecare 15 wave spawn boss ILOVEYOU scalat.
+Director tine WeightedTable<EnemySpec> cu inamici deblocati progresiv prin WaveSpec.unlocks_after. generateSpawns(budget) greedy spend (selecteaza random ponderat pana cheltuie tot budget-ul). Endless mode (dupa boss val 15): budget scaleaza cu player_weight (cumparari shop) ca run-urile sa nu fie usoare la fiecare 15 wave spawn boss ILOVEYOU scalat
 
 
 

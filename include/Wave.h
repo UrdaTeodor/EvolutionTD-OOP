@@ -42,7 +42,6 @@ public:
 
     void addEnemy(const Enemy& enemy);          // adauga in pendingEnemies
     bool allDefeated() const;                   // true daca nu mai e nimic de procesat
-    int activeCount() const;                    // cati inamici sunt pe ecran
     const std::vector<Enemy>& getActiveEnemies() const;
 
     friend std::ostream& operator<<(std::ostream& os, const Wave& w);

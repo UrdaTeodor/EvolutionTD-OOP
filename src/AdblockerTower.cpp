@@ -9,10 +9,6 @@
 AdblockerTower::AdblockerTower(const TowerSpec& spec, int col, int row)
     : Tower(spec, "adblocker", col, row) {}
 
-std::unique_ptr<Tower> makeAdblocker(const TowerSpec& spec, int col, int row) {
-    return std::make_unique<AdblockerTower>(spec, col, row);
-}
-
 bool AdblockerTower::isInRange(const Enemy& enemy, float effectiveRange) const {
     float dx = enemy.getX() - static_cast<float>(getX());
     float dy = enemy.getY() - static_cast<float>(getY());

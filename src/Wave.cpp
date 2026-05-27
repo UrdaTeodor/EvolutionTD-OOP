@@ -110,10 +110,6 @@ bool Wave::allDefeated() const {
     return pendingEnemies.empty() && activeEnemies.empty();
 }
 
-int Wave::activeCount() const {
-    return static_cast<int>(activeEnemies.size());
-}
-
 const std::vector<Enemy>& Wave::getActiveEnemies() const {
     return activeEnemies;
 }
