@@ -8,8 +8,6 @@
 #include <utility>
 
 namespace {
-    sf::Color withAlpha(sf::Color c, sf::Uint8 a) { c.a = a; return c; }
-
     void drawText(sf::RenderWindow& window, const sf::Font* font,
                   const std::string& s, unsigned size, float x, float y, sf::Color col) {
         if (!font) return;

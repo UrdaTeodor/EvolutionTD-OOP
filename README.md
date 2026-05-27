@@ -70,17 +70,39 @@ UPDATE v0.2.5a:
 - Game constructor primeste `DataRegistry&` + `map_id`; `start_hp`/`start_money`/`path`/`max_waves` vin din `MapSpec`.
 
 
-### Roadmap T3 planificat
+### Stadiu curent (T3) - v0.3
 
-1. Shop intre valuri: dupa fiecare val, fereastra cu 3 evolutii random (rarity weighted: 50% Mini, 30% Rare, 15% Epic, 5% Legendary). User cumpara cu credite si aplica pe un tower.
-2. Design patterns:
-   - Factory: deja exista in `EvolutionFactory`, va fi extins cu `RandomEvolutionFactory`.
-   - Strategy pentru rendering: `Renderer` (abstract) + `ConsoleRenderer` + `SFMLRenderer` (codul curent mutat in `SFMLRenderer`).
-   - Optional Singleton pentru `Shop` sau `Game`.
-3. Class template: `RandomPool<T>` cu pondere pe raritate pentru `Evolution` si pentru random enemy spawning.
-4. Function template (cerinta T3): generic `operator<<` pentru containere.
-5. Date in fisier (cerinta T2+T3): mut stats Tower/Enemy + compozitie valuri in `data/*.json`, parsare cu nlohmann/json (a doua biblioteca externa pe langa SFML).
-6. Mythic evolutions wired in shop: doar daca user are 2 Legendary compatibile.
+Joc complet jucabil: 15 wave-uri (boss la final) + shop intre valuri + token-uri ability + save/load + endless mode + high scores per harta.
+
+**Design patterns (T3):**
+
+1. Factory Method - ierarhie `EvolutionFactory` (abstract, [include/EvolutionFactory.h](include/EvolutionFactory.h)) cu 3 concrete: `MiniEvolutionFactory`, `MajorEvolutionFactory`, `MythicEvolutionFactory`(unused). Fiecare incarca tier-ul corespunzator din `data/evolutions.json` la constructor, populeaza un `WeightedTable<T>` intern si expune `sample(rng)`. `ShopPanel::factories_` tine `std::vector<EvolutionFactory*>` (polimorfism prin pointer de baza) pentru a itera tier-urile.
+
+2. State Pattern (scene stack) - `Scene` abstract  cu `MainMenuScene`, `GameScene`, `PauseScene`, `GameOverScene`. `SceneManager` tine `std::vector<unique_ptr<Scene>>` ca stack si forward `update/render/handleEvent` doar la scena top. Tranzitiile sunt deferred (`requestPush/Pop/Replace/ReplaceAll/Clear` + `applyPending` la final de frame) ca sa nu invalideze pointer-ul curent in mijlocul handleEvent. PauseScene push pe stack peste GameScene -> GameScene se opreste (nu primeste update) dar ramane vizibila in spate.
+
+**Class template ( min 2 instantieri):**
+
+- `WeightedTable<T>`  - `add(item, weight)` + `sample(rng)` (roll uniform pe `total_weight`, scan cumulativ).
+- Instantieri reale: `WeightedTable<EnemySpec>` (Director pool inamici), `WeightedTable<MiniStatSpec>` (MiniEvolutionFactory), `WeightedTable<MajorEvolutionSpec>` (MajorEvolutionFactory).
+
+**Function template ( min 2 instantieri):**
+
+- `loadIntoMap<T>` - deschide fisier JSON, umple `std::unordered_map<std::string, T>` via ADL `from_json<T>` (nlohmann).
+- Instantieri: `TowerSpec`, `EnemySpec`, `WaveSpec`, `MapSpec`
+
+**Shop**
+
+panel UI in GameScene. Refresh la final de wave: 3 carduri Mini + 2 carduri Major (Major doar pe wave-uri cu `offers_major: true` in WaveSpec). Mini = stat buff aplicat instant pe GlobalStatBuffs (`damage_pct`, `range_pct`, `attack_speed_pct`, etc.) cu target_type random ales dintre tower types afectate de stat. Major stat = la fel dar valori mai mari + rarity weighted. Major = token in inventar (max 3 FIFO) care se aplica pe tower compatibil (`Tower::supports(ability)` returneaza true). Buton REFRESH 100cr pentru re-roll. Toate cost-urile/stat-urile vin din `data/evolutions.json`.
+
+**Save/Load**
+
+`SaveManager` write atomic JSON in `data/save_current.json` dupa fiecare event decizional: end wave, cumparare in shop, sell tower, apply token, place tower. La start, MainMenuScene detecteaza save existent si activeaza butonul Continue. Restore complet cu `operator<<`/`operator>>` pe `std::mt19937` Game-over scrie inregistrare in `data/high_scores.json` si sterge save current.
+
+**Director + 15 wave-uri:**
+
+Director tine WeightedTable<EnemySpec> cu inamici deblocati progresiv prin WaveSpec.unlocks_after. generateSpawns(budget) greedy spend (selecteaza random ponderat pana cheltuie tot budget-ul). Endless mode (dupa boss val 15): budget scaleaza cu player_weight (cumparari shop) ca run-urile sa nu fie usoare la fiecare 15 wave spawn boss ILOVEYOU scalat.
+
+
 
 
 ### Folosiți template-ul corespunzător grupei voastre!
@@ -171,12 +193,12 @@ O cerință nu se consideră îndeplinită dacă este realizată doar prin cod g
 ## Tema 3
 
 #### Cerințe
-- [ ] 2 șabloane de proiectare (design patterns)
-- [ ] o clasă șablon cu sens; minim **2 instanțieri**
-  - [ ] preferabil și o funcție șablon (template) cu sens; minim 2 instanțieri
-- [ ] minim 80-90% din codul propriu să fie C++
-<!-- - [ ] o specializare pe funcție/clasă șablon -->
-- [ ] tag de `git` pe commit cu **toate bifele**: de exemplu `v0.3` sau `v1.0`
+- [x] 2 șabloane de proiectare (design patterns)
+- [x] o clasă șablon cu sens; minim **2 instanțieri**
+  - [x] preferabil și o funcție șablon (template) cu sens; minim 2 instanțieri
+- [x] minim 80-90% din codul propriu să fie C++
+<!-- - [x] o specializare pe funcție/clasă șablon -->
+- [x] tag de `git` pe commit cu **toate bifele**: de exemplu `v0.3` sau `v1.0`
 - [ ] code review #3 2 proiecte
 
 ## Instrucțiuni de compilare

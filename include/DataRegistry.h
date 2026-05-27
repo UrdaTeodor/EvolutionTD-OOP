@@ -31,11 +31,8 @@ public:
     const WaveSpec&  getWave(const std::string& key)  const;
     const MapSpec&   getMap(const std::string& key)   const;
 
-    // Verificare existenta fara throw (pt UI/Director).
-    bool hasTower(const std::string& key) const;
+    // Verificare existenta fara throw (folosit la activare boss in endless mode).
     bool hasEnemy(const std::string& key) const;
-    bool hasWave(const std::string& key)  const;
-    bool hasMap(const std::string& key)   const;
 
     // Iterare chei (folosit de ShopPanel pentru a aplica un buff pe toate tower types).
     std::vector<std::string> towerKeys() const;

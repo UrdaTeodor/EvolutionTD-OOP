@@ -55,9 +55,6 @@ std::unique_ptr<Evolution> MythicEvolution::clone() const {
 }
 
 
-MythicEvolution::MythicType MythicEvolution::getMythicType() const { return mythicType; }
-
-
 MythicEvolution::MythicType MythicEvolution::deriveType(
         AbilityEvolution::AbilityType a, AbilityEvolution::AbilityType b) {
     auto p = std::minmax(a, b);

@@ -35,7 +35,6 @@ public:
 
     bool   empty() const { return items_.empty(); }
     std::size_t size()  const { return items_.size(); }
-    float  totalWeight() const { return total_weight_; }
 
     // Sample weighted. Arunca daca tabela e goala.
     // Returneaza const ref ca sa evitam copii inutile la T mari

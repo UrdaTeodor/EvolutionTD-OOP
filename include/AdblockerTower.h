@@ -13,8 +13,6 @@ class AdblockerTower : public Tower {
     float attackCooldown  = 0.0f;
 
     bool isInRange(const Enemy& enemy, float effectiveRange) const;
-    void attackEnemy(Enemy& enemy);
-    std::pair<float, float> calculateInterceptPoint(const Enemy& enemy) const;
 
 public:
     AdblockerTower(const TowerSpec& spec, int col, int row);

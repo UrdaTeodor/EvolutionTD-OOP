@@ -65,20 +65,8 @@ const MapSpec& DataRegistry::getMap(const std::string& key) const {
     return it->second;
 }
 
-bool DataRegistry::hasTower(const std::string& key) const {
-    return towers_.find(key) != towers_.end();
-}
-
 bool DataRegistry::hasEnemy(const std::string& key) const {
     return enemies_.find(key) != enemies_.end();
-}
-
-bool DataRegistry::hasWave(const std::string& key) const {
-    return waves_.find(key) != waves_.end();
-}
-
-bool DataRegistry::hasMap(const std::string& key) const {
-    return maps_.find(key) != maps_.end();
 }
 
 std::vector<std::string> DataRegistry::towerKeys() const {

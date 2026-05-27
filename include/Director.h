@@ -27,5 +27,4 @@ public:
     std::vector<EnemySpec> generateSpawns(int budget) const;
 
     bool empty() const { return pool_.empty(); }
-    const std::vector<std::string>& unlockedKeys() const { return unlocked_keys_; }
 };

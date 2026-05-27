@@ -20,44 +20,6 @@ bool AntivirusTower::isInRange(const Enemy& enemy, float effectiveRange) const {
     return std::sqrt(dx * dx + dy * dy) <= effectiveRange;
 }
 
-std::pair<float, float> AntivirusTower::calculateInterceptPoint(const Enemy& enemy) const {
-    float ex = enemy.getX();
-    float ey = enemy.getY();
-    float vx = enemy.getVelocityX();
-    float vy = enemy.getVelocityY();
-    float ps = spec().projectile_speed;
-
-    float dx = ex - static_cast<float>(getX());
-    float dy = ey - static_cast<float>(getY());
-
-    float a = vx * vx + vy * vy - ps * ps;
-    float b = 2.0f * (dx * vx + dy * vy);
-    float c = dx * dx + dy * dy;
-
-    float t = 0.0f;
-
-    if (std::abs(a) < 0.0001f) {
-        t = (std::abs(b) > 0.0001f) ? (-c / b) : 0.0f;
-    } else {
-        float disc = b * b - 4.0f * a * c;
-        if (disc < 0.0f) return {ex, ey};
-        float sqrtDisc = std::sqrt(disc);
-        float t1 = (-b + sqrtDisc) / (2.0f * a);
-        float t2 = (-b - sqrtDisc) / (2.0f * a);
-        if      (t1 > 0.0f && t2 > 0.0f) t = std::min(t1, t2);
-        else if (t1 > 0.0f)               t = t1;
-        else if (t2 > 0.0f)               t = t2;
-        else return {ex, ey};
-    }
-
-    return {ex + vx * t, ey + vy * t};
-}
-
-void AntivirusTower::attackEnemy(Enemy& enemy) {
-    // Stub pastrat pentru compatibilitate. Logica reala (cu buff/abilities) in update().
-    enemy.takeDamage(spec().damage);
-}
-
 void AntivirusTower::update(std::vector<Enemy>& enemies, float deltaTime,
                             const GlobalStatBuffs& buffs,
                             const std::vector<std::pair<int, int>>& path) {
@@ -101,7 +63,7 @@ void AntivirusTower::update(std::vector<Enemy>& enemies, float deltaTime,
             for (auto& e : enemies) {
                 if (!e.isAlive() || !isInRange(e, range)) continue;
                 bool in_primary = false;
-                for (Enemy* t : targets) if (&e == t) { in_primary = true; break; }
+                for (const Enemy* t : targets) if (&e == t) { in_primary = true; break; }
                 if (in_primary) continue;
                 float dx = e.getX() - static_cast<float>(getX());
                 float dy = e.getY() - static_cast<float>(getY());

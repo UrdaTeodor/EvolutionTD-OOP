@@ -6,7 +6,6 @@ Evolution::Evolution(std::string name, int cost, Rarity rarity)
 
 const std::string& Evolution::getName() const { return name; }
 int Evolution::getCost() const { return cost; }
-Evolution::Rarity Evolution::getRarity() const { return rarity; }
 
 static const char* rarityToStr(Evolution::Rarity r) {
     switch (r) {

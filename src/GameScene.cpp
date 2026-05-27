@@ -64,15 +64,6 @@ namespace {
         return { 20.0f + i * 65.0f, 520.0f, 50.0f, 50.0f };
     }
 
-    float rangeForType(int type) {
-        switch (type) {
-            case 1: return 4.0f;
-            case 2: return 3.0f;
-            case 3: return 1.5f;
-            default: return 0.0f;
-        }
-    }
-
     float fireIntervalForChar(char c) {
         switch (c) {
             case 'A': return 1.0f;

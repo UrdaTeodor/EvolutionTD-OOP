@@ -108,15 +108,9 @@ public:
     // Statistici cumulative (resetate per run).
     int  getTotalKills()       const { return total_kills_; }
     int  getTotalMoneyEarned() const { return total_money_earned_; }
-    int  getPlayerWeight()     const { return player_weight_; }
     int& mutableWeight()             { return player_weight_; }
     bool isEndlessActive()     const { return endless_active_; }
     void enableEndless()             { endless_active_ = true; }
-
-
-    // Folosit de SaveManager la load (restaurare contoare).
-    void setTotalKills(int v)        { total_kills_ = v; }
-    void setTotalMoneyEarned(int v)  { total_money_earned_ = v; }
 
     const std::string& getMapId() const { return current_map_id_; }
 

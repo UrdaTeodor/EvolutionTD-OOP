@@ -8,7 +8,6 @@
 
 namespace {
     constexpr float WIN_W      = 1920.0f;
-    constexpr float WIN_H      = 1080.0f;
     constexpr float BTN_W      = 420.0f;
     constexpr float BTN_H      = 96.0f;
     constexpr float BTN_X      = (WIN_W - BTN_W) / 2.0f;

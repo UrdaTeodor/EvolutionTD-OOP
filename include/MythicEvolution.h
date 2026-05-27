@@ -36,8 +36,6 @@ public:
     void apply(const EvolutionContext& ctx) override;
     std::unique_ptr<Evolution> clone() const override;
 
-    MythicType getMythicType() const;
-
     friend void swap(MythicEvolution& a, MythicEvolution& b) noexcept;
 
 protected:

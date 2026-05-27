@@ -32,7 +32,6 @@ public:
 
     const std::string& getName() const;
     int getCost() const;
-    Rarity getRarity() const;
 
     friend std::ostream& operator<<(std::ostream& os, const Evolution& e);
 

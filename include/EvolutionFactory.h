@@ -75,6 +75,4 @@ public:
     //oricare token nu e Legendary
     //combinatia ability nu match-uieste nicio reteta
     std::unique_ptr<MythicEvolution> craft(const EvolutionToken& a, const EvolutionToken& b) const;
-
-    int mythicCost() const { return mythic_cost_; }
 };

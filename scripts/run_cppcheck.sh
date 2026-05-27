@@ -12,6 +12,6 @@ cppcheck --enable=all \
     --suppress=unmatchedSuppression \
     --suppress=useStlAlgorithm \
     --check-level=exhaustive \
-    -j 6 \
+    -j 1 \
     --cppcheck-build-dir=cppcheck-scan-dir \
     --error-exitcode=1
