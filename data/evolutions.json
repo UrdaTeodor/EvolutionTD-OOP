@@ -1,30 +1,32 @@
 {
   "mini": [
-    { "name": "DamageBuff",      "cost": 25, "stat_field": "damage_pct",       "stat_value": 0.05 },
-    { "name": "RangeBuff",       "cost": 25, "stat_field": "range_pct",        "stat_value": 0.05 },
-    { "name": "AttackSpeedBuff", "cost": 25, "stat_field": "attack_speed_pct", "stat_value": 0.05 },
-    { "name": "MaxHPBuff",       "cost": 25, "stat_field": "max_hp_pct",       "stat_value": 0.05 },
-    { "name": "RegenBuff",       "cost": 25, "stat_field": "regen_pct",        "stat_value": 0.05 },
-    { "name": "SlowBuff",        "cost": 25, "stat_field": "slow_pct",         "stat_value": 0.05 },
+    { "name": "DamageBuff",      "cost": 25, "stat_field": "damage_pct",       "stat_value": 0.07 },
+    { "name": "RangeBuff",       "cost": 25, "stat_field": "range_pct",        "stat_value": 0.07 },
+    { "name": "AttackSpeedBuff", "cost": 25, "stat_field": "attack_speed_pct", "stat_value": 0.07 },
+    { "name": "MaxHPBuff",       "cost": 25, "stat_field": "max_hp_pct",       "stat_value": 0.07 },
+    { "name": "RegenBuff",       "cost": 25, "stat_field": "regen_pct",        "stat_value": 0.07 },
+    { "name": "SlowBuff",        "cost": 25, "stat_field": "slow_pct",         "stat_value": 0.07 },
     { "name": "IncomeBuff",      "cost": 25, "stat_field": "income_pct",       "stat_value": 0.20 }
   ],
 
   "major": [
     { "name": "Damage",      "cost": 100, "rarity": "RARE", "kind": "STAT",
-      "stat_field": "damage_pct",       "stat_value": 0.30 },
+      "stat_field": "damage_pct",       "stat_value": 0.20 },
     { "name": "Range",       "cost": 100, "rarity": "RARE", "kind": "STAT",
-      "stat_field": "range_pct",        "stat_value": 0.30 },
+      "stat_field": "range_pct",        "stat_value": 0.15 },
     { "name": "AttackSpeed", "cost": 100, "rarity": "RARE", "kind": "STAT",
-      "stat_field": "attack_speed_pct", "stat_value": 0.30 },
+      "stat_field": "attack_speed_pct", "stat_value": 0.20 },
     { "name": "MaxHP",       "cost": 100, "rarity": "RARE", "kind": "STAT",
-      "stat_field": "max_hp_pct",       "stat_value": 0.30 },
+      "stat_field": "max_hp_pct",       "stat_value": 0.20 },
 
-    { "name": "MultiTarget", "cost": 200, "rarity": "EPIC", "kind": "ABILITY",
+    { "name": "MultiTarget", "cost": 300, "rarity": "EPIC", "kind": "ABILITY",
       "ability": "MULTI_TARGET" },
     { "name": "BiggerAura",  "cost": 200, "rarity": "EPIC", "kind": "ABILITY",
       "ability": "BIGGER_AURA" },
     { "name": "Armored",     "cost": 200, "rarity": "EPIC", "kind": "ABILITY",
       "ability": "ARMORED" },
+    { "name": "Amplify",     "cost": 250, "rarity": "EPIC", "kind": "ABILITY",
+      "ability": "AMPLIFY" },
 
     { "name": "DoubleShot",    "cost": 500, "rarity": "LEGENDARY", "kind": "ABILITY",
       "ability": "DOUBLE_SHOT" },
@@ -35,7 +37,11 @@
     { "name": "ReflectShield", "cost": 500, "rarity": "LEGENDARY", "kind": "ABILITY",
       "ability": "REFLECTIVE_SHIELD" },
     { "name": "Movable",       "cost": 500, "rarity": "LEGENDARY", "kind": "ABILITY",
-      "ability": "MOVABLE" }
+      "ability": "MOVABLE" },
+    { "name": "Overclock",     "cost": 400, "rarity": "LEGENDARY", "kind": "ABILITY",
+      "ability": "OVERCLOCK" },
+    { "name": "BlastWave",     "cost": 500, "rarity": "LEGENDARY", "kind": "ABILITY",
+      "ability": "SPLASH" }
   ],
 
   "rarity_weights": {

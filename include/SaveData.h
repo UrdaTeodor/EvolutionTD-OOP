@@ -13,14 +13,17 @@ struct SaveData {
     int total_money_earned = 0;
     int player_weight      = 0;
     bool endless_active    = false;
+    int minis_bought       = 0;   // escaladare pret Mini (v0.4)
 
-    //  Towers 
+    //  Towers
     struct TowerEntry {
         std::string type_key;
         int col = 0;
         int row = 0;
         std::vector<std::string> applied_abilities;
         int token_investment = 0;
+        std::string targeting = "FIRST";   // TargetingMode (v0.4)
+        std::string mythic;                // numele mythic-ului aplicat, gol = niciunul (v0.4)
     };
     std::vector<TowerEntry> towers;
 
@@ -61,14 +64,20 @@ struct SaveData {
     };
     std::vector<MajorSlot> major_offer;
 
-    //  Tokens in inventar 
+    //  Tokens in inventar
     struct TokenEntry {
         std::string name;
         std::string ability;
         std::string rarity;
         int cost = 0;
+        bool is_wildcard = false;      // v0.4.1: Mythic Token universal (loterie)
     };
     std::vector<TokenEntry> tokens;
+
+    //  Loterie / gauntlet (v0.4.1)
+    int  lottery_offers_made = 0;
+    bool lottery_accepted    = false;
+    int  gauntlet_waves_left = 0;
 
     // RNG state 
     // mt19937 serializat prin operator<< 
@@ -77,9 +86,11 @@ struct SaveData {
 };
 
 // nlohmann macros genereaza automat to_json / from_json (folosesc ADL).
-// cppcheck-suppress unknownMacro
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SaveData::TowerEntry,
-    type_key, col, row, applied_abilities, token_investment)
+// Varianta WITH_DEFAULT ca save-urile vechi (fara campul "targeting") sa se
+// incarce in continuare, cu default-ul din struct.
+// cppcheck-suppress [unknownMacro, unreadVariable]
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SaveData::TowerEntry,
+    type_key, col, row, applied_abilities, token_investment, targeting, mythic)
 
 // cppcheck-suppress unknownMacro
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SaveData::BuffEntry,
@@ -94,14 +105,15 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SaveData::MiniSlot,
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SaveData::MajorSlot,
     name, cost, rarity, kind, stat_field, stat_value, ability, target_type, bought)
 
-// cppcheck-suppress unknownMacro
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SaveData::TokenEntry,
-    name, ability, rarity, cost)
+// cppcheck-suppress [unknownMacro, unreadVariable]
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SaveData::TokenEntry,
+    name, ability, rarity, cost, is_wildcard)
 
-// cppcheck-suppress unknownMacro
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SaveData,
+// cppcheck-suppress [unknownMacro, unreadVariable]
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SaveData,
     map_id, wave_number, player_hp, money,
-    total_kills, total_money_earned, player_weight, endless_active,
+    total_kills, total_money_earned, player_weight, endless_active, minis_bought,
+    lottery_offers_made, lottery_accepted, gauntlet_waves_left,
     towers, buffs,
     mini_offer, major_offer, tokens,
     rng_state)

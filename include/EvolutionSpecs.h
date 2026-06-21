@@ -1,4 +1,6 @@
 #pragma once
+#include <algorithm>
+#include <cctype>
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -10,8 +12,9 @@
 
 // MiniStatSpec
 // Buff procentual aplicat pe TowerType (global) imediat la cumparare.
-// stat_field corespunde unui camp din TowerTypeBuffs (GlobalStatBuffs.h):
-//   "damage_pct", "range_pct", "attack_speed_pct", "max_hp_pct", "regen_pct"
+// stat_field e direct cheia de stat din GlobalStatBuffs (GlobalStatBuffs.h):
+//   "damage_pct", "range_pct", "attack_speed_pct", "max_hp_pct", "regen_pct",
+//   "slow_pct", "income_pct" — fara mapare la campuri fixe, e cheia in harta.
 struct MiniStatSpec {
     std::string name;
     int cost = 0;
@@ -49,11 +52,18 @@ struct MajorEvolutionSpec {
 };
 
 inline Evolution::Rarity rarityFromString(const std::string& s) {
-    if (s == "MINI")      return Evolution::Rarity::MINI;
-    if (s == "RARE")      return Evolution::Rarity::RARE;
-    if (s == "EPIC")      return Evolution::Rarity::EPIC;
-    if (s == "LEGENDARY") return Evolution::Rarity::LEGENDARY;
-    if (s == "MYTHIC")    return Evolution::Rarity::MYTHIC;
+    // Case-insensitive: writer-ul (rarityToString) scrie Title Case ("Legendary")
+    // iar JSON-ul de date scrie UPPER ("LEGENDARY"). Normalizam la UPPER ca
+    // ambele surse — inclusiv save-urile vechi deja scrise pe disc — sa se
+    // incarce, nu sa crape la "Continue".
+    std::string u = s;
+    std::transform(u.begin(), u.end(), u.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    if (u == "MINI")      return Evolution::Rarity::MINI;
+    if (u == "RARE")      return Evolution::Rarity::RARE;
+    if (u == "EPIC")      return Evolution::Rarity::EPIC;
+    if (u == "LEGENDARY") return Evolution::Rarity::LEGENDARY;
+    if (u == "MYTHIC")    return Evolution::Rarity::MYTHIC;
     throw std::invalid_argument("Rarity necunoscuta: " + s);
 }
 

@@ -9,7 +9,8 @@ public:
 
     void update(std::vector<Enemy>& enemies, float deltaTime,
                 const GlobalStatBuffs& buffs,
-                const std::vector<std::pair<int, int>>& path) override;
+                const std::vector<std::pair<int, int>>& path,
+                std::vector<Shot>& out_shots) override;
     char getDisplayChar() const override;
     std::unique_ptr<Tower> clone() const override;
     int collectIncome(const GlobalStatBuffs& buffs) const override;

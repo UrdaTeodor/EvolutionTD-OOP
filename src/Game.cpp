@@ -2,6 +2,7 @@
 
 #include "AntivirusTower.h"
 #include "AdblockerTower.h"
+#include "ProjectileTower.h"
 #include "HoneypotTower.h"
 #include "FirewallTower.h"
 #include "BytecoinMinerTower.h"
@@ -73,7 +74,13 @@ Game::Game(const Game& other)
       total_kills_(other.total_kills_),
       total_money_earned_(other.total_money_earned_),
       player_weight_(other.player_weight_),
-      endless_active_(other.endless_active_)
+      endless_active_(other.endless_active_),
+      lottery_offers_made_(other.lottery_offers_made_),
+      lottery_accepted_(other.lottery_accepted_),
+      lottery_offer_pending_(other.lottery_offer_pending_),
+      gauntlet_waves_left_(other.gauntlet_waves_left_),
+      gauntlet_reward_ready_(other.gauntlet_reward_ready_),
+      income_events_(other.income_events_)
 {
     // Director.rng_ pointer din other puncteaza la &other.rng_
     director_.setRng(rng_);
@@ -126,6 +133,12 @@ void swap(Game& a, Game& b) noexcept {
     swap(a.total_money_earned_, b.total_money_earned_);
     swap(a.player_weight_,     b.player_weight_);
     swap(a.endless_active_,    b.endless_active_);
+    swap(a.lottery_offers_made_,   b.lottery_offers_made_);
+    swap(a.lottery_accepted_,      b.lottery_accepted_);
+    swap(a.lottery_offer_pending_, b.lottery_offer_pending_);
+    swap(a.gauntlet_waves_left_,   b.gauntlet_waves_left_);
+    swap(a.gauntlet_reward_ready_, b.gauntlet_reward_ready_);
+    swap(a.income_events_,         b.income_events_);
 }
 
 void Game::takeSnapshot() {
@@ -205,12 +218,42 @@ Wave Game::buildWave(int waveNum) {
     const MapSpec&  map  = registry_->getMap(current_map_id_);
 
     Wave wave(waveNum, {});
+    // Boss-ul scriptat din valul final = defeat instant la scapare; restul
+    // ILOVEYOU-urilor (Director, endless) sunt inamici obisnuiti.
+    wave.setFinalBossWave(waveNum == max_waves_);
 
-    const float w        = static_cast<float>(player_weight_);
-    const float hp_mult  = 1.0f + 0.01f * w;
-    float interval       = std::max(0.01f, 2.0f - 0.025f * std::sqrt(2.0f * w));
+    // Director scaling (RoR2): cumparaturile din shop cresc weight-ul, care
+    // intareste inamicii. Coeficientii sunt alesi ca un buff cumparat sa ramana
+    // NET POZITIV pentru jucator (v0.4: 0.01 -> 0.0035; inainte un Mini de +5%
+    // damage pe un singur tip de turn scumpea TOTI inamicii cu +10% HP, deci
+    // shop-ul te facea mai slab - confirmat de balance_sim, 0% win rate).
+    // Doua surse de presiune, multiplicative:
+    //  - wave_mult: HP-ul inamicilor creste cu valul (independent de jucator),
+    //    altfel valurile tarzii doar adauga numar, iar recompensele per kill
+    //    le fac sa se autofinanteze (confirmat de balance_sim: 100% win rate).
+    //  - hp_mult (RoR2): cumparaturile din shop cresc weight-ul -> inamici mai
+    //    grasi. Coeficient ales ca un buff cumparat sa ramana net pozitiv.
+    const float w         = static_cast<float>(player_weight_);
+    const float hp_mult   = 1.0f + 0.005f * w;
+    const float wave_mult = 1.0f + 0.085f * static_cast<float>(waveNum - 1);
+    // Gauntlet (loterie acceptata): DOAR HP boostat, nu mai multi inamici.
+    // RAMPA 1.2 -> 1.5 pe cele 6 valuri (flat 1.6 din primul val insemna
+    // HP de val ~21 jucat cu DPS de val 9 — 0% win rate la TOTI botii,
+    // inclusiv synergy; rampa da timp sa convertesti banii in DPS).
+    const float gauntlet_mult = (gauntlet_waves_left_ > 0)
+        ? 1.2f + 0.06f * static_cast<float>(6 - gauntlet_waves_left_)
+        : 1.0f;
+    float interval        = std::max(0.01f, 2.0f - 0.02f * std::sqrt(2.0f * w));
 
     if (waveNum > max_waves_) {
+        // In endless, ILOVEYOU devine inamic OBISNUIT de Director (cost de
+        // buget normal, pastreaza imunitatea la knockback prin is_boss).
+        // unlock() e idempotent, deci e sigur sa-l chemam la fiecare val —
+        // acopera si restore-ul din save (pool-ul se reconstruieste la load).
+        if (registry_->hasEnemy("iloveyou")) {
+            director_.unlock("iloveyou", registry_->getEnemy("iloveyou"), 0.6f);
+        }
+
         int tier = std::max(0, (waveNum - max_waves_ - 1) / 10);
         float endless_mult   = std::pow(2.0f, static_cast<float>(tier));
         int   endless_budget = static_cast<int>(50.0f * endless_mult);
@@ -224,14 +267,16 @@ Wave Game::buildWave(int waveNum) {
         }
         wave.setSpawnInterval(interval);
 
+        // Gauntlet-ul (loteria din endless) conteaza si aici.
+        const float total_mult = hp_mult * wave_mult * gauntlet_mult;
         if (boss_wave) {
             Enemy boss(registry_->getEnemy("iloveyou"));
-            boss.scaleHealth(1.0f + (hp_mult - 1.0f) * 0.5f);
+            boss.scaleHealth(1.0f + (total_mult - 1.0f) * 0.5f);
             wave.addEnemy(boss);
         }
         for (const auto& spec : spawns) {
             Enemy e(spec);
-            e.scaleHealth(hp_mult);
+            e.scaleHealth(total_mult);
             wave.addEnemy(e);
         }
         return wave;
@@ -248,9 +293,14 @@ Wave Game::buildWave(int waveNum) {
     }
     wave.setSpawnInterval(interval);
 
-    // Boss primeste doar jumate din buff-ul de HP (player are sansa rezonabila la wave 10).
-    auto effectiveMult = [hp_mult](bool is_boss) {
-        return is_boss ? (1.0f + (hp_mult - 1.0f) * 0.5f) : hp_mult;
+    // Boss primeste doar jumate din buff-ul total de HP (player are sansa rezonabila).
+    // Ruta hardcore (loterie acceptata): boss-ul final e buffat suplimentar.
+    const float total_mult = hp_mult * wave_mult * gauntlet_mult;
+    const bool  hardcore   = lottery_accepted_;
+    auto effectiveMult = [total_mult, hardcore](bool is_boss) {
+        float m = is_boss ? (1.0f + (total_mult - 1.0f) * 0.5f) : total_mult;
+        if (is_boss && hardcore) m *= 1.5f;
+        return m;
     };
 
     for (const auto& key : wave_spec.intro) {
@@ -326,10 +376,39 @@ void Game::placeTower(int typeChoice, int col, int row) {
     }
 
     money -= towerCost;
-    std::cout << "Placed " << newTower->getName()
-              << " at (row=" << row << ", col=" << col << ") for " << towerCost << " credits.\n";
     towers.push_back(std::move(newTower));
     refreshGrid();
+}
+
+void Game::moveTower(int fromCol, int fromRow, int toCol, int toRow) {
+    Tower* t = towerAt(fromCol, fromRow);
+    if (!t) {
+        throw InvalidPlacementException("Nu exista turn la pozitia sursa.");
+    }
+    if (!t->isMovable()) {
+        throw InvalidPlacementException(
+            t->getName() + " nu are abilitatea MOVABLE.");
+    }
+    if (!isValidPlacement(toCol, toRow, t->spec().requires_path)) {
+        std::string pos = "(" + std::to_string(toCol) + "," + std::to_string(toRow) + ")";
+        throw InvalidPlacementException("Nu pot muta turnul la " + pos + ".");
+    }
+    t->moveTo(toCol, toRow);
+    refreshGrid();
+}
+
+Tower* Game::towerAt(int col, int row) {
+    for (const auto& t : towers) {
+        if (t->getX() == col && t->getY() == row) return t.get();
+    }
+    return nullptr;
+}
+
+const Tower* Game::towerAt(int col, int row) const {
+    for (const auto& t : towers) {
+        if (t->getX() == col && t->getY() == row) return t.get();
+    }
+    return nullptr;
 }
 
 int Game::sellTower(int col, int row) {
@@ -356,6 +435,9 @@ void Game::tickWave(float dt) {
     int earned = 0;
     int killed = 0;
     int damage = currentWave.simulate(towers, path, dt, earned, killed, buffs_);
+    // Ruta hardcore plateste LIVE: +30% bani pe kill cat tine gauntlet-ul
+    // (risc/recompensa in timp real, nu doar premiul de la final).
+    if (gauntlet_waves_left_ > 0) earned += earned * 3 / 10;
     money    += earned;
     playerHP -= damage;
     total_kills_        += killed;
@@ -367,13 +449,69 @@ bool Game::isWaveActive() const {
 }
 
 void Game::endWave() {
-    // venit pasiv (Miner returneaza income, restul 0)
+    // venit pasiv (Miner returneaza income, restul 0); per-turn ca eveniment,
+    // ca EffectsLayer sa porneasca monedele exact din minerii care au produs.
     for (const auto& tower : towers) {
-        money += tower->collectIncome(buffs_);
+        int inc = tower->collectIncome(buffs_);
+        if (inc > 0) {
+            income_events_.push_back({ static_cast<float>(tower->getX()),
+                                       static_cast<float>(tower->getY()), inc });
+        }
+        money += inc;
     }
     // Aplica unlocks din WaveSpec pentru wave
     applyWaveUnlocks(waveNumber);
     waveNumber++;
+
+    // Gauntlet activ: numara valurile supravietuite; la final, recompensa.
+    if (gauntlet_waves_left_ > 0) {
+        --gauntlet_waves_left_;
+        if (gauntlet_waves_left_ == 0) {
+            constexpr int GAUNTLET_REWARD = 250;
+            money               += GAUNTLET_REWARD;
+            total_money_earned_ += GAUNTLET_REWARD;
+            gauntlet_reward_ready_ = true;
+        }
+    }
+
+    // Oferta de loterie inainte de valurile 9 si 12 (a doua sansa daca refuzi).
+    if (!lottery_accepted_ && !endless_active_) {
+        if ((lottery_offers_made_ == 0 && waveNumber == 9) ||
+            (lottery_offers_made_ == 1 && waveNumber == 12)) {
+            lottery_offer_pending_ = true;
+            ++lottery_offers_made_;
+        }
+    }
+    // Endless: scam-ad-ul revine la fiecare 4 valuri (daca nu e deja un
+    // gauntlet in curs) — ruta hardcore devine bucla de risc/recompensa:
+    // HP boostat 6 valuri contra +250cr + Mythic Token, repetabil.
+    else if (endless_active_ && gauntlet_waves_left_ == 0 &&
+             (waveNumber - max_waves_) % 4 == 2) {
+        lottery_offer_pending_ = true;
+    }
+}
+
+void Game::acceptLottery() {
+    if (!lottery_offer_pending_) return;
+    lottery_offer_pending_ = false;
+    lottery_accepted_      = true;
+    gauntlet_waves_left_   = 6;
+}
+
+void Game::declineLottery() {
+    lottery_offer_pending_ = false;
+}
+
+bool Game::takeGauntletReward() {
+    if (!gauntlet_reward_ready_) return false;
+    gauntlet_reward_ready_ = false;
+    return true;
+}
+
+std::vector<IncomeEvent> Game::takeIncomeEvents() {
+    std::vector<IncomeEvent> out;
+    out.swap(income_events_);
+    return out;
 }
 
 bool Game::isGameOver() const {
@@ -417,6 +555,9 @@ void Game::serializeTo(SaveData& out) const {
     out.total_money_earned = total_money_earned_;
     out.player_weight      = player_weight_;
     out.endless_active     = endless_active_;
+    out.lottery_offers_made = lottery_offers_made_;
+    out.lottery_accepted    = lottery_accepted_;
+    out.gauntlet_waves_left = gauntlet_waves_left_;
 
     out.towers.clear();
     for (const auto& t : towers) {
@@ -425,24 +566,29 @@ void Game::serializeTo(SaveData& out) const {
         te.col              = t->getX();
         te.row              = t->getY();
         te.token_investment = t->getTokenInvestment();
+        te.targeting        = targetingModeName(t->targeting());
+        if (t->mythicBadge()) te.mythic = t->mythicBadge();
         for (AbilityType ab : t->getAppliedAbilities()) {
             te.applied_abilities.emplace_back(abilityToString(ab));
         }
         out.towers.push_back(std::move(te));
     }
 
-    // Buffs
+    // Buffs: harta (tip, stat) -> formatul de save pe campuri fixe (neschimbat,
+    // ca save-urile vechi sa ramana compatibile). Adaptorul intre harta interna
+    // si BuffEntry traieste DOAR aici, intr-un singur loc.
     out.buffs.clear();
-    for (const auto& [type_key, tb] : buffs_.all()) {
+    for (const auto& entry : buffs_.all()) {
+        const std::string& type_key = entry.first;
         SaveData::BuffEntry be;
         be.type_key         = type_key;
-        be.damage_pct       = tb.damage_pct;
-        be.range_pct        = tb.range_pct;
-        be.attack_speed_pct = tb.attack_speed_pct;
-        be.max_hp_pct       = tb.max_hp_pct;
-        be.regen_pct        = tb.regen_pct;
-        be.slow_pct         = tb.slow_pct;
-        be.income_pct       = tb.income_pct;
+        be.damage_pct       = buffs_.pct(type_key, "damage_pct");
+        be.range_pct        = buffs_.pct(type_key, "range_pct");
+        be.attack_speed_pct = buffs_.pct(type_key, "attack_speed_pct");
+        be.max_hp_pct       = buffs_.pct(type_key, "max_hp_pct");
+        be.regen_pct        = buffs_.pct(type_key, "regen_pct");
+        be.slow_pct         = buffs_.pct(type_key, "slow_pct");
+        be.income_pct       = buffs_.pct(type_key, "income_pct");
         out.buffs.push_back(std::move(be));
     }
 
@@ -460,18 +606,21 @@ void Game::restoreFrom(const SaveData& src) {
     total_money_earned_ = src.total_money_earned;
     player_weight_      = src.player_weight;
     endless_active_     = src.endless_active;
+    lottery_offers_made_ = src.lottery_offers_made;
+    lottery_accepted_    = src.lottery_accepted;
+    gauntlet_waves_left_ = src.gauntlet_waves_left;
 
-    // Buffs: rebuild
+    // Buffs: rebuild din formatul de save (campuri fixe) in harta interna.
+    // add() pe o harta proaspata = setare (acumuleaza din 0).
     buffs_ = GlobalStatBuffs{};
     for (const auto& be : src.buffs) {
-        auto& tb = buffs_.mutable_for(be.type_key);
-        tb.damage_pct       = be.damage_pct;
-        tb.range_pct        = be.range_pct;
-        tb.attack_speed_pct = be.attack_speed_pct;
-        tb.max_hp_pct       = be.max_hp_pct;
-        tb.regen_pct        = be.regen_pct;
-        tb.slow_pct         = be.slow_pct;
-        tb.income_pct       = be.income_pct;
+        buffs_.add(be.type_key, "damage_pct",       be.damage_pct);
+        buffs_.add(be.type_key, "range_pct",        be.range_pct);
+        buffs_.add(be.type_key, "attack_speed_pct", be.attack_speed_pct);
+        buffs_.add(be.type_key, "max_hp_pct",       be.max_hp_pct);
+        buffs_.add(be.type_key, "regen_pct",        be.regen_pct);
+        buffs_.add(be.type_key, "slow_pct",         be.slow_pct);
+        buffs_.add(be.type_key, "income_pct",       be.income_pct);
     }
 
     // Towers: clear si replay placeTower cu money bypass (placeTower deduce cost,
@@ -489,13 +638,12 @@ void Game::restoreFrom(const SaveData& src) {
         }
         Tower* placed = towers.back().get();
         placed->recordTokenInvestment(te.token_investment);
-        // Apply abilities. KNOCKBACK_EVERY_3 e cazul special cu dynamic_cast (T2 pastrat).
+        placed->setTargeting(targetingModeFromString(te.targeting));
+        // Apply abilities. KNOCKBACK_EVERY_3 e cazul special cu dynamic_cast.
         for (const auto& ab_str : te.applied_abilities) {
             if (ab_str == "KNOCKBACK_EVERY_3") {
-                if (auto* anti = dynamic_cast<AntivirusTower*>(placed)) {
-                    anti->setKnockbackInterval(3);
-                } else if (auto* adb = dynamic_cast<AdblockerTower*>(placed)) {
-                    adb->setKnockbackInterval(3);
+                if (auto* pt = dynamic_cast<ProjectileTower*>(placed)) {
+                    pt->setKnockbackInterval(3);
                 }
                 continue;
             }
@@ -504,6 +652,17 @@ void Game::restoreFrom(const SaveData& src) {
                 placed->applyAbility(ab);
             } catch (const std::exception&) {
                 // necunoscut / incompatibil - skip
+            }
+        }
+        // Mythic-ul DUPA abilitatile-sursa (RovingBruiser suprascrie knockback 3->2).
+        if (!te.mythic.empty()) {
+            MythicType m{};
+            if (mythicTypeFromString(te.mythic, m)) {
+                try {
+                    placed->applyMythic(m);
+                } catch (const GameException&) {
+                    // incompatibil cu turnul restaurat - skip
+                }
             }
         }
     }

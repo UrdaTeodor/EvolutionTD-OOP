@@ -2,6 +2,7 @@
 #include <vector>
 #include <memory>
 #include "Scene.h"
+#include "AudioManager.h"
 
 namespace sf {
     class RenderWindow;
@@ -14,6 +15,10 @@ namespace sf {
 // tranzitia se buffereaza si se aplica la sfarsitul frameului (applyPending)
 class SceneManager {
     std::vector<std::unique_ptr<Scene>> stack_;
+
+    // Audio partajat de toate scenele (muzica + SFX). Detinut aici pentru ca
+    // toate scenele au deja referinta la SceneManager.
+    AudioManager audio_;
 
     enum class PendingType { NONE, PUSH, POP, REPLACE, REPLACE_ALL, CLEAR };
     PendingType pending_type_  = PendingType::NONE;
@@ -37,4 +42,6 @@ public:
     void handleEvent(const sf::Event& event);
 
     bool empty() const { return stack_.empty(); }
+
+    AudioManager& audio() { return audio_; }
 };

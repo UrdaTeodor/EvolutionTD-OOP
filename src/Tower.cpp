@@ -4,19 +4,61 @@
 #include <algorithm>
 #include <utility>
 
+const char* targetingModeName(TargetingMode m) {
+    switch (m) {
+        case TargetingMode::FIRST:  return "FIRST";
+        case TargetingMode::CLOSE:  return "CLOSE";
+        case TargetingMode::STRONG: return "STRONG";
+        case TargetingMode::LAST:   return "LAST";
+    }
+    return "FIRST";
+}
+
+TargetingMode targetingModeFromString(const std::string& s) {
+    if (s == "CLOSE")  return TargetingMode::CLOSE;
+    if (s == "STRONG") return TargetingMode::STRONG;
+    if (s == "LAST")   return TargetingMode::LAST;
+    return TargetingMode::FIRST;
+}
+
+int Tower::next_instance_id_ = 0;
+
 Tower::Tower(const TowerSpec& spec, std::string type_key, int x, int y)
-    : spec_(&spec), type_key_(std::move(type_key)), x_(x), y_(y), movable_(false) {}
+    : instance_id_(next_instance_id_++),
+      spec_(&spec), type_key_(std::move(type_key)), x_(x), y_(y), movable_(false) {}
+
+void Tower::cycleTargeting() {
+    switch (targeting_) {
+        case TargetingMode::FIRST:  targeting_ = TargetingMode::CLOSE;  break;
+        case TargetingMode::CLOSE:  targeting_ = TargetingMode::STRONG; break;
+        case TargetingMode::STRONG: targeting_ = TargetingMode::LAST;   break;
+        case TargetingMode::LAST:   targeting_ = TargetingMode::FIRST;  break;
+    }
+}
+
 
 void Tower::applyAbility(AbilityType /*a*/) {
     throw IncompatibleEvolutionException(
         "Turnul '" + spec_->display_name + "' nu suporta aceasta abilitate.");
 }
 
+void Tower::applyMythic(MythicType /*m*/) {
+    throw IncompatibleEvolutionException(
+        "Turnul '" + spec_->display_name + "' nu suporta acest Mythic.");
+}
+
 int Tower::collectIncome(const GlobalStatBuffs& /*buffs*/) const {
     return 0;   // turnurile nonMiner nu dau venit
 }
 
-void Tower::enableMovable() { movable_ = true; }
+void Tower::enableMovable() {
+    // A doua aplicare nu ar face nimic, token pierdut pe tacute. Respingem
+    // cu motiv (shop-ul afiseaza mesajul si NU consuma token-ul).
+    if (movable_) {
+        throw IncompatibleEvolutionException("Turnul e deja Movable.");
+    }
+    movable_ = true;
+}
 
 // cppcheck-suppress unusedFunction
 void Tower::recordTokenInvestment(int cost) { token_investment_ += cost; }
@@ -35,7 +77,7 @@ const std::string& Tower::getTypeKey()  const { return type_key_; }
 const TowerSpec&   Tower::spec()        const { return *spec_; }
 
 float Tower::effectiveRange(const GlobalStatBuffs& buffs) const {
-    return spec_->range * (1.0f + buffs.for_type(type_key_).range_pct);
+    return spec_->range * (1.0f + buffs.pct(type_key_, "range_pct"));
 }
 
 // cppcheck-suppress unusedFunction

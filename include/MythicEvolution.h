@@ -1,15 +1,15 @@
 #pragma once
 #include "Evolution.h"
 #include "AbilityEvolution.h"
+#include "MythicType.h"
 
 // MythicEvolution: combinatie de 2 AbilityEvolution Legendary.
+// apply() aplica ambele abilitati-sursa + efectul unic (Tower::applyMythic).
 class MythicEvolution : public Evolution {
 public:
-    enum class MythicType {
-        PHOENIX_BARRAGE,    // DOUBLE_SHOT + FIRE_TRAIL placeholdere momentan
-        ROVING_BRUISER,     // KNOCKBACK_EVERY_3 + MOVABLE
-        SHIELDED_RUNNER     // REFLECTIVE_SHIELD + MOVABLE
-    };
+    // Alias pastrat pentru codul existent; enum-ul real e in MythicType.h
+    // (partajat cu Tower::applyMythic).
+    using MythicType = ::MythicType;
 
 private:
     std::unique_ptr<AbilityEvolution> source1;

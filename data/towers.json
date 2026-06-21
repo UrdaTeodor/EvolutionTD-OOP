@@ -3,12 +3,12 @@
     "display_name": "PrimitiveAV",
     "cost": 50,
     "range": 4.0,
-    "damage": 25.0,
+    "damage": 28.0,
     "attack_speed": 1.0,
     "projectile_speed": 8.0,
     "requires_path": false,
     "max_count": 6,
-    "supports_abilities": ["MULTI_TARGET", "DOUBLE_SHOT", "FIRE_TRAIL", "KNOCKBACK_EVERY_3", "MOVABLE"]
+    "supports_abilities": ["MULTI_TARGET", "DOUBLE_SHOT", "FIRE_TRAIL", "KNOCKBACK_EVERY_3", "MOVABLE", "SPLASH"]
   },
 
   "adblocker": {
@@ -30,7 +30,7 @@
     "slow_factor": 0.8,
     "requires_path": false,
     "max_count": 4,
-    "supports_abilities": ["BIGGER_AURA", "MOVABLE"]
+    "supports_abilities": ["BIGGER_AURA", "MOVABLE", "AMPLIFY", "OVERCLOCK"]
   },
 
   "firewall": {
@@ -49,9 +49,9 @@
     "display_name": "BytecoinMiner",
     "cost": 50,
     "range": 0.0,
-    "income_per_wave": 15,
+    "income_per_wave": 13,
     "requires_path": false,
-    "max_count": 10,
+    "max_count": 8,
     "supports_abilities": ["MOVABLE"]
   }
 }

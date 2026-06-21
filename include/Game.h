@@ -9,6 +9,7 @@
 #include "Wave.h"
 #include "GlobalStatBuffs.h"
 #include "Director.h"
+#include "VisualEvent.h"
 
 class DataRegistry;
 struct MapSpec;
@@ -59,6 +60,20 @@ class Game {
     int player_weight_       = 0;
 
     bool endless_active_     = false;
+
+    // Evenimentul de loterie (v0.4.1): popup scam-ad oferit inainte de valurile
+    // 9 si 12. Accept = "ruta hardcore": 6 valuri cu HP boostat (doar HP, nu
+    // numar de inamici), la final bani + Mythic Token; boss-ul final e buffat.
+    int  lottery_offers_made_   = 0;
+    bool lottery_accepted_      = false;
+    bool lottery_offer_pending_ = false;
+    int  gauntlet_waves_left_   = 0;
+    bool gauntlet_reward_ready_ = false;
+
+    // Venitul per-Miner din ultimul endWave, pana il consuma GameScene
+    // (monedele care zboara spre contor). Transient, dar copiat la snapshot
+    // ca regula celor 3 sa ramana completa.
+    std::vector<IncomeEvent> income_events_;
 
     void initPath();
     void refreshGrid();
@@ -139,6 +154,15 @@ public:
 
     void placeTower(int typeChoice, int x, int y);
 
+    // Tower-ul de la (col, row) sau nullptr. Versiunea non-const e folosita de
+    // GameScene pentru actiuni pe turn (cycle targeting, apply token).
+    Tower*       towerAt(int col, int row);
+    const Tower* towerAt(int col, int row) const;
+
+    // Repozitioneaza un turn cu abilitatea MOVABLE. Arunca InvalidPlacementException
+    // daca turnul lipseste, nu e movable, sau celula destinatie e invalida.
+    void moveTower(int fromCol, int fromRow, int toCol, int toRow);
+
     // Sell tower at (col, row): refund 75% cost base + 50% suma token-uri aplicate.
     // Returneaza 0 daca nu exista tower acolo.
     int  sellTower(int col, int row);
@@ -148,8 +172,25 @@ public:
     bool isWaveActive() const;
     void endWave();
 
+    // Evenimentele vizuale ale ultimelor tick-uri (trageri/impacturi/morti),
+    // consumate o data pe frame de EffectsLayer prin GameScene.
+    std::vector<VisualEvent> takeVisualEvents() { return currentWave.takeVisualEvents(); }
+    // Venitul per-Miner incasat la endWave (monedele de pe tabla).
+    std::vector<IncomeEvent> takeIncomeEvents();
+
     bool isGameOver() const;
     bool allWavesDone() const;
+
+    // Loterie / gauntlet
+    bool lotteryOfferPending() const { return lottery_offer_pending_; }
+    void acceptLottery();
+    void declineLottery();
+    bool isGauntletActive()  const { return gauntlet_waves_left_ > 0; }
+    int  gauntletWavesLeft() const { return gauntlet_waves_left_; }
+    bool isHardcoreRoute()   const { return lottery_accepted_; }
+    // True O SINGURA data, imediat dupa ce gauntlet-ul s-a incheiat cu succes
+    // (banii sunt deja adaugati; caller-ul acorda Mythic Token-ul).
+    bool takeGauntletReward();
 
     friend std::ostream& operator<<(std::ostream& os, const Game& g);
 };

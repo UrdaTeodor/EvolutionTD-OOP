@@ -71,6 +71,10 @@ public:
     // Cauta o reteta pentru perechea (a, b).
     bool canCraft(AbilityType a, AbilityType b, std::string* outName = nullptr) const;
 
+    // Costul de craft (mythic_cost din evolutions.json).
+    // cppcheck-suppress unusedFunction
+    int mythicCost() const { return mythic_cost_; }
+
     //Arunca IncompatibleEvolutionException daca:
     //oricare token nu e Legendary
     //combinatia ability nu match-uieste nicio reteta

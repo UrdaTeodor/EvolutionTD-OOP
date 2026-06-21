@@ -7,6 +7,9 @@
 #include "EvolutionFactory.h"
 #include "EvolutionSpecs.h"
 #include "EvolutionToken.h"
+#include "MythicType.h"
+
+class Tower;
 
 class GlobalStatBuffs;
 class DataRegistry;
@@ -67,6 +70,14 @@ public:
     // cppcheck-suppress unusedFunction
     int tokenCount() const { return static_cast<int>(tokens_.size()); }
 
+    // Mythic Token universal (castigat din evenimentul de loterie). FIFO max 3.
+    void addWildcardToken();
+
+    // True + tipul de mythic daca turnul are 2 Legendare compatibile (o reteta)
+    // deja aplicate si nu are inca un mythic. Folosit la apply-ul wildcard-ului
+    // si la halo-urile verzi.
+    bool mythicTypeFor(const Tower& tower, MythicType& out) const;
+
     // Total carduri active in offer (pt status / debug).
     int totalOfferedCards() const;
 
@@ -99,6 +110,13 @@ private:
     int  active_token_idx_  = -1;
     std::mt19937* refresh_rng_ = nullptr;
 
+    // Escaladare de pret (roguelike): fiecare Mini cumparat in run scumpeste
+    // urmatorul cu MINI_PRICE_STEP. Fara asta, mini-urile la pret fix se pot
+    // spama nelimitat si stat-urile scapa de sub control (balance_sim: 100% win).
+    int minis_bought_ = 0;
+    static constexpr int MINI_PRICE_STEP = 3;
+    int miniPrice(int base_cost) const { return base_cost + MINI_PRICE_STEP * minis_bought_; }
+
     //layout constants (in pixeli)
     static constexpr float SHOP_X = 460.0f;
     static constexpr float SHOP_Y = 60.0f;
@@ -127,7 +145,6 @@ private:
     // helpers
     sf::FloatRect miniRect(int idx) const;
     sf::FloatRect majorRect(int idx) const;
-    sf::FloatRect tokenRect(int idx) const;
     sf::FloatRect closeRect() const;
     sf::FloatRect refreshRect() const;
 

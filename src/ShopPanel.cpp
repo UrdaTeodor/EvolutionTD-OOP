@@ -3,7 +3,9 @@
 #include "DataRegistry.h"
 #include "GameException.h"
 #include "SaveData.h"
+#include "Tower.h"
 #include "TowerSpec.h"
+#include "Palette.h"
 #include <algorithm>
 #include <utility>
 
@@ -66,16 +68,33 @@ void ShopPanel::refresh(std::mt19937& rng, bool offer_major) {
         return keys[d(rng)];
     };
 
+    // Carduri diferite in aceeasi oferta (resample la dublura): dublurile
+    // faceau ofertele sa para repetitive / "ne-random".
+    auto isDuplicateMini = [&](const std::string& name) {
+        for (const auto& s : mini_offer_) if (s.spec.name == name) return true;
+        return false;
+    };
+    auto isDuplicateMajor = [&](const std::string& name) {
+        for (const auto& s : major_offer_) if (s.spec.name == name) return true;
+        return false;
+    };
+
     if (mini_factory_ && mini_factory_->size() > 0) {
         for (int i = 0; i < 3; i++) {
             MiniStatSpec spec = mini_factory_->sample(rng);   // copy
-            spec.target_type  = pickRandomTarget(spec.stat_field);
+            for (int tries = 0; tries < 20 && isDuplicateMini(spec.name); ++tries) {
+                spec = mini_factory_->sample(rng);
+            }
+            spec.target_type = pickRandomTarget(spec.stat_field);
             mini_offer_.push_back({ spec, false, true });
         }
     }
     if (offer_major && major_factory_ && major_factory_->size() > 0) {
         for (int i = 0; i < 2; i++) {
             MajorEvolutionSpec spec = major_factory_->sample(rng);   // copy
+            for (int tries = 0; tries < 20 && isDuplicateMajor(spec.name); ++tries) {
+                spec = major_factory_->sample(rng);
+            }
             if (spec.kind == MajorEvolutionSpec::Kind::STAT) {
                 spec.target_type = pickRandomTarget(spec.stat_field);
             }
@@ -122,11 +141,6 @@ sf::FloatRect ShopPanel::majorRect(int idx) const {
     return { x, MAJOR_CARD_Y, MAJOR_CARD_W, MAJOR_CARD_H };
 }
 
-sf::FloatRect ShopPanel::tokenRect(int idx) const {
-    return { SHOP_X + 25.0f, TOKEN_AREA_Y + 40.0f + idx * TOKEN_ROW_H,
-             SHOP_W - 50.0f, TOKEN_ROW_H - 8.0f };
-}
-
 sf::FloatRect ShopPanel::closeRect() const {
     return { CLOSE_BTN_X, CLOSE_BTN_Y, CLOSE_BTN_W, CLOSE_BTN_W };
 }
@@ -135,15 +149,41 @@ sf::FloatRect ShopPanel::refreshRect() const {
     return { REFRESH_BTN_X, REFRESH_BTN_Y, REFRESH_BTN_W, REFRESH_BTN_H };
 }
 
-sf::Color ShopPanel::rarityColor(Evolution::Rarity r) const {
-    switch (r) {
-        case Evolution::Rarity::MINI:      return sf::Color(140, 180, 200);
-        case Evolution::Rarity::RARE:      return sf::Color( 60, 140, 220);
-        case Evolution::Rarity::EPIC:      return sf::Color(160,  80, 200);
-        case Evolution::Rarity::LEGENDARY: return sf::Color(220, 140,  40);
-        case Evolution::Rarity::MYTHIC:    return sf::Color(220,  60,  60);
+void ShopPanel::addWildcardToken() {
+    if (tokens_.size() >= 3) {
+        tokens_.erase(tokens_.begin());
+        if (active_token_idx_ == 0)      active_token_idx_ = -1;
+        else if (active_token_idx_ > 0)  --active_token_idx_;
     }
-    return sf::Color::White;
+    EvolutionToken tok;
+    tok.name        = "MythicToken";
+    tok.ability     = AbilityType::MULTI_TARGET;   // ignorat pentru wildcard
+    tok.rarity      = Evolution::Rarity::MYTHIC;
+    tok.cost        = 0;
+    tok.is_wildcard = true;
+    tokens_.push_back(std::move(tok));
+}
+
+bool ShopPanel::mythicTypeFor(const Tower& tower, MythicType& out) const {
+    if (!mythic_factory_) return false;
+    if (tower.mythicBadge() != nullptr) return false;   // max 1 mythic per turn
+
+    auto abilities = tower.getAppliedAbilities();
+    std::string name;
+    for (size_t i = 0; i < abilities.size(); ++i) {
+        for (size_t j = i + 1; j < abilities.size(); ++j) {
+            if (abilities[i] == abilities[j]) continue;
+            if (mythic_factory_->canCraft(abilities[i], abilities[j], &name) &&
+                mythicTypeFromString(name, out)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+sf::Color ShopPanel::rarityColor(Evolution::Rarity r) const {
+    return palette::rarityColor(r);
 }
 
 // ---- render ----
@@ -197,7 +237,7 @@ void ShopPanel::render(sf::RenderWindow& window, int money) const {
             card.setFillColor(sf::Color(40, 50, 60));
             card.setOutlineColor(sf::Color(80, 80, 80));
         } else {
-            bool canAfford = (money >= slot.spec.cost);
+            bool canAfford = (money >= miniPrice(slot.spec.cost));
             card.setFillColor(canAfford ? sf::Color(50, 70, 100) : sf::Color(50, 40, 40));
             card.setOutlineColor(rarityColor(Evolution::Rarity::MINI));
         }
@@ -212,7 +252,7 @@ void ShopPanel::render(sf::RenderWindow& window, int money) const {
             drawText(window, font_, "+" + std::to_string(int(slot.spec.stat_value * 100.0f)) + "% "
                                     + prettyStat(slot.spec.stat_field),
                      18, r.left + 12.0f, r.top + 45.0f, sf::Color(180, 220, 200));
-            drawText(window, font_, std::to_string(slot.spec.cost) + " cr",
+            drawText(window, font_, std::to_string(miniPrice(slot.spec.cost)) + " cr",
                      22, r.left + 12.0f, r.top + r.height - 38.0f, sf::Color(255, 220, 100));
         } else {
             drawText(window, font_, "SOLD", 30, r.left + r.width / 2.0f - 40.0f,
@@ -273,6 +313,16 @@ void ShopPanel::render(sf::RenderWindow& window, int money) const {
                      r.top + r.height / 2.0f - 22.0f, sf::Color(150, 150, 150));
         }
     }
+
+    // Mythic info section
+    drawText(window, font_, "MYTHIC", 20, SHOP_X + 25.0f, TOKEN_AREA_Y,
+             sf::Color(180, 200, 230));
+    drawText(window, font_,
+             "Mythic Token (din evenimente) + 2 Legendare compatibile pe acelasi turn = evolutie Mythic",
+             15, SHOP_X + 25.0f, TOKEN_AREA_Y + 32.0f, sf::Color(120, 140, 160));
+    drawText(window, font_,
+             "Retete: DoubleShot+FireTrail / Knockback+Movable / ReflectShield+Movable",
+             15, SHOP_X + 25.0f, TOKEN_AREA_Y + 54.0f, sf::Color(120, 140, 160));
 }
 
 //click handling
@@ -307,14 +357,16 @@ ShopPanel::ClickResult ShopPanel::handleClick(float mx, float my, int& money, in
         if (!slot.valid || slot.bought) continue;
         if (!miniRect(static_cast<int>(i)).contains(mx, my)) continue;
 
-        if (money < slot.spec.cost) {
+        int price = miniPrice(slot.spec.cost);
+        if (money < price) {
             outErr = "Money insuficient pentru " + slot.spec.name;
             return ClickResult::BUY_FAILED;
         }
-        money -= slot.spec.cost;
+        money -= price;
         applyMini(slot.spec);
         slot.bought   = true;
-        player_weight += 10;
+        ++minis_bought_;
+        player_weight += 4;
         return ClickResult::BUY_OK_INSTANT;
     }
 
@@ -333,7 +385,7 @@ ShopPanel::ClickResult ShopPanel::handleClick(float mx, float my, int& money, in
         if (slot.spec.kind == MajorEvolutionSpec::Kind::STAT) {
             applyMajorStat(slot.spec);
             slot.bought   = true;
-            player_weight += 30;
+            player_weight += 12;
             return ClickResult::BUY_OK_INSTANT;
         } else {
             // Queue FIFO max 3
@@ -344,7 +396,9 @@ ShopPanel::ClickResult ShopPanel::handleClick(float mx, float my, int& money, in
             }
             tokens_.push_back({ slot.spec.name, slot.spec.ability, slot.spec.rarity, slot.spec.cost });
             slot.bought   = true;
-            player_weight += 30;
+            // Ability tokens sunt multiplicatori (mult peste stat-uri) — Directorul
+            // le taxeaza mai mult decat un major de stat (+20 vs +12).
+            player_weight += 20;
             return ClickResult::BUY_OK_TOKEN;
         }
     }
@@ -356,14 +410,9 @@ ShopPanel::ClickResult ShopPanel::handleClick(float mx, float my, int& money, in
 
 void ShopPanel::applyMini(const MiniStatSpec& spec) {
     if (spec.target_type.empty()) return;
-    auto& tb = buffs_.mutable_for(spec.target_type);
-    if      (spec.stat_field == "damage_pct")       tb.damage_pct       += spec.stat_value;
-    else if (spec.stat_field == "range_pct")        tb.range_pct        += spec.stat_value;
-    else if (spec.stat_field == "attack_speed_pct") tb.attack_speed_pct += spec.stat_value;
-    else if (spec.stat_field == "max_hp_pct")       tb.max_hp_pct       += spec.stat_value;
-    else if (spec.stat_field == "regen_pct")        tb.regen_pct        += spec.stat_value;
-    else if (spec.stat_field == "slow_pct")         tb.slow_pct         += spec.stat_value;
-    else if (spec.stat_field == "income_pct")       tb.income_pct       += spec.stat_value;
+    // Numele stat-ului din JSON e direct cheia in GlobalStatBuffs — fara
+    // dispatch pe campuri (inainte era un if/else de 7 ramuri aici).
+    buffs_.add(spec.target_type, spec.stat_field, spec.stat_value);
 }
 
 void ShopPanel::applyMajorStat(const MajorEvolutionSpec& spec) {
@@ -402,6 +451,7 @@ namespace {
 }
 
 void ShopPanel::serializeTo(SaveData& out) const {
+    out.minis_bought = minis_bought_;
     out.mini_offer.clear();
     for (const auto& slot : mini_offer_) {
         if (!slot.valid) continue;
@@ -431,16 +481,18 @@ void ShopPanel::serializeTo(SaveData& out) const {
 
     out.tokens.clear();
     for (const auto& t : tokens_) {
-        out.tokens.push_back({
-            t.name,
-            abilityToString(t.ability),
-            rarityToString(t.rarity),
-            t.cost
-        });
+        SaveData::TokenEntry te;
+        te.name        = t.name;
+        te.ability     = abilityToString(t.ability);
+        te.rarity      = rarityToString(t.rarity);
+        te.cost        = t.cost;
+        te.is_wildcard = t.is_wildcard;
+        out.tokens.push_back(std::move(te));
     }
 }
 
 void ShopPanel::restoreFrom(const SaveData& src) {
+    minis_bought_ = src.minis_bought;
     mini_offer_.clear();
     for (const auto& ms : src.mini_offer) {
         MiniStatSpec spec{ ms.name, ms.cost, ms.stat_field, ms.stat_value, ms.target_type };
@@ -468,12 +520,13 @@ void ShopPanel::restoreFrom(const SaveData& src) {
     tokens_.clear();
     for (const auto& te : src.tokens) {
         try {
-            tokens_.push_back({
-                te.name,
-                stringToAbility(te.ability),
-                rarityFromString(te.rarity),
-                te.cost
-            });
+            EvolutionToken tok;
+            tok.name        = te.name;
+            tok.ability     = stringToAbility(te.ability);
+            tok.rarity      = rarityFromString(te.rarity);
+            tok.cost        = te.cost;
+            tok.is_wildcard = te.is_wildcard;
+            tokens_.push_back(std::move(tok));
         } catch (...) {
         }
     }

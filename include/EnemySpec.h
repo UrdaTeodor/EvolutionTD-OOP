@@ -10,6 +10,10 @@ struct EnemySpec {
     int   reward        = 0;
     int   director_cost = 0;     // 0 = nu spawneaza Directorul (intro hardcodat/eventual alte runde hardcodate pe viitor)
     bool  is_boss       = false;
+    // Cat HP pierde jucatorul daca inamicul ajunge la baza. Fix per tip, NU
+    // HP-ul curent al inamicului: cu HP scalat pe valuri, orice scapare ar fi
+    // fost moarte instanta (dificultate binara, netunabila).
+    int   leak_damage   = 5;
 };
 
 inline void from_json(const nlohmann::json& j, EnemySpec& s) {
@@ -19,4 +23,5 @@ inline void from_json(const nlohmann::json& j, EnemySpec& s) {
     j.at("reward").get_to(s.reward);
     s.director_cost = j.value("director_cost", 0);
     s.is_boss       = j.value("is_boss", false);
+    s.leak_damage   = j.value("leak_damage", 5);
 }

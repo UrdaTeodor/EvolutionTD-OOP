@@ -91,6 +91,7 @@ int main() {
     window.setFramerateLimit(60);
 
     SceneManager manager;
+    manager.audio().startMusic();
     manager.requestPush(std::make_unique<MainMenuScene>(manager, registry));
     manager.applyPending();
 

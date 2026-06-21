@@ -13,9 +13,15 @@ namespace {
 
     bool loadFont(sf::Font& font) {
         const char* paths[] = {
-            "assets/font.ttf",
-            "C:/Windows/Fonts/segoeui.ttf",
+            "assets/font.ttf",                  // bundled (portabil, cautat primul)
+            "C:/Windows/Fonts/segoeui.ttf",     // Windows
             "C:/Windows/Fonts/arial.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",         // Debian/Ubuntu
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSans.ttf",                  // Fedora
+            "/usr/share/fonts/TTF/DejaVuSans.ttf",                     // Arch
+            "/System/Library/Fonts/Supplemental/Arial.ttf",           // macOS
+            "/Library/Fonts/Arial.ttf",
         };
         for (const char* p : paths) {
             if (font.loadFromFile(p)) return true;
@@ -30,6 +36,8 @@ GameOverScene::GameOverScene(SceneManager& manager, const DataRegistry& registry
     : manager_(manager), registry_(registry),
       victory_(victory), map_id_(map_id),
       wave_reached_(wave_reached), kills_(kills), money_earned_(money_earned) {
+
+    manager_.audio().play(victory_ ? Sfx::JINGLE_WIN : Sfx::JINGLE_LOSE, 90.0f);
 
     // Record + cleanup save (run terminat, NU mai exista Continue).
     HighScores hs;

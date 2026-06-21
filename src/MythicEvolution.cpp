@@ -1,5 +1,7 @@
 #include "MythicEvolution.h"
 #include "GameException.h"
+#include "EvolutionContext.h"
+#include "Tower.h"
 #include <algorithm>
 #include <utility>
 
@@ -36,18 +38,21 @@ void swap(MythicEvolution& a, MythicEvolution& b) noexcept {
 }
 
 void MythicEvolution::apply(const EvolutionContext& ctx) {
+    if (!ctx.target_tower) {
+        throw IncompatibleEvolutionException("MythicEvolution.apply: invalid target");
+    }
+    // Anti-stack: verificam INAINTE sa aplicam sursele, altfel un turn care are
+    // deja un Mythic ar primi abilitatile-sursa si abia apoi exceptia.
+    if (ctx.target_tower->mythicBadge() != nullptr) {
+        throw IncompatibleEvolutionException("Turnul are deja un Mythic (max 1 per turn).");
+    }
+
     source1->apply(ctx);
     source2->apply(ctx);
 
-    // efect mythic specific (placeholder)
-    switch (mythicType) {
-        case MythicType::PHOENIX_BARRAGE:
-            break;
-        case MythicType::ROVING_BRUISER:
-            break;
-        case MythicType::SHIELDED_RUNNER:
-            break;
-    }
+    // Efectul unic al mythic-ului (PhoenixBarrage / RovingBruiser / ShieldedRunner),
+    // implementat in derivata de Tower corespunzatoare.
+    ctx.target_tower->applyMythic(mythicType);
 }
 
 std::unique_ptr<Evolution> MythicEvolution::clone() const {

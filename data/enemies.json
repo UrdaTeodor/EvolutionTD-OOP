@@ -4,6 +4,7 @@
     "max_health": 50.0,
     "speed": 2.0,
     "reward": 5,
+    "leak_damage": 5,
     "director_cost": 1,
     "is_boss": false
   },
@@ -12,6 +13,7 @@
     "max_health": 150.0,
     "speed": 1.0,
     "reward": 15,
+    "leak_damage": 12,
     "director_cost": 4,
     "is_boss": false
   },
@@ -20,15 +22,17 @@
     "max_health": 30.0,
     "speed": 4.0,
     "reward": 5,
+    "leak_damage": 4,
     "director_cost": 1,
     "is_boss": false
   },
   "iloveyou": {
     "display_name": "ILOVEYOU",
-    "max_health": 5000.0,
+    "max_health": 4000.0,
     "speed": 0.5,
     "reward": 500,
-    "director_cost": 0,
+    "leak_damage": 30,
+    "director_cost": 60,
     "is_boss": true
   }
 }

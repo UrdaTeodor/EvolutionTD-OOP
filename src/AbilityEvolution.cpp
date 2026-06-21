@@ -1,7 +1,6 @@
 #include "AbilityEvolution.h"
 #include "Tower.h"
-#include "AntivirusTower.h"
-#include "AdblockerTower.h"
+#include "ProjectileTower.h"
 #include "GameException.h"
 #include <utility>
 
@@ -19,12 +18,9 @@ void AbilityEvolution::apply(const EvolutionContext& ctx) {
     }
 
     if (ability == AbilityType::KNOCKBACK_EVERY_3) {
-        if (auto* anti = dynamic_cast<AntivirusTower*>(ctx.target_tower)) {
-            anti->setKnockbackInterval(3);
-            return;
-        }
-        if (auto* adb = dynamic_cast<AdblockerTower*>(ctx.target_tower)) {
-            adb->setKnockbackInterval(3);
+        // Downcast cu sens: doar turnurile cu proiectile au knockback interval.
+        if (auto* pt = dynamic_cast<ProjectileTower*>(ctx.target_tower)) {
+            pt->setKnockbackInterval(3);
             return;
         }
         throw IncompatibleEvolutionException(
@@ -41,21 +37,6 @@ std::unique_ptr<Evolution> AbilityEvolution::clone() const {
 
 AbilityEvolution::AbilityType AbilityEvolution::getAbility() const { return ability; }
 
-static const char* abilityToStr(AbilityEvolution::AbilityType a) {
-    using A = AbilityEvolution::AbilityType;
-    switch (a) {
-        case A::MULTI_TARGET:      return "MultiTarget";
-        case A::BIGGER_AURA:       return "BiggerAura";
-        case A::ARMORED:           return "Armored";
-        case A::DOUBLE_SHOT:       return "DoubleShot";
-        case A::FIRE_TRAIL:        return "FireTrail";
-        case A::KNOCKBACK_EVERY_3: return "Knockback/3";
-        case A::REFLECTIVE_SHIELD: return "ReflectShield";
-        case A::MOVABLE:           return "Movable";
-    }
-    return "?";
-}
-
 void AbilityEvolution::displayDetails(std::ostream& os) const {
-    os << " ability:" << abilityToStr(ability);
+    os << " ability:" << abilityDisplayName(ability);
 }

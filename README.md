@@ -105,6 +105,105 @@ Director tine WeightedTable<EnemySpec> cu inamici deblocati progresiv prin WaveS
 
 
 
+### Stadiu curent (v0.4) - update post-curs
+
+Focus: calitatea si longevitatea core gameplay-ului pe o harta (fun + balans), inainte de continut nou.
+
+**Arhitectura UI refactorizata:**
+- `GameScene` (1138 linii) spart in layere cu responsabilitati unice: `BoardRenderer` (grid/turnuri/inamici/overlay-uri), `EffectsLayer` (proiectile, particule, damage numbers), `HudPanel` (butoane, texte, info panel), `Sprites`, `UiLayout` (geometrie partajata), `Palette` (culori partajate).
+- `ProjectileTower` — baza comuna Antivirus/Adblocker (update/targeting/abilitati erau duplicate 1:1).
+
+**Combat feel:**
+- Health bars pe inamici + bara mare de boss cu gradatii de faza, damage numbers plutitoare (diferenta de HP per inamic, urmarita dupa `Enemy::id`), scantei de impact, screen shake la pierdere de HP.
+- Proiectilele vizuale folosesc stats-urile efective (attack speed/range/projectile speed din spec + buffs) si aceeasi tinta ca logica de damage.
+
+**Mecanici noi:**
+- Targeting per turn: FIRST (default) / CLOSE / STRONG, buton in info panel + tasta T, persistat in save.
+- MOVABLE implementat efectiv: buton MOVE / tasta M(si in timpul valului).
+- Mythic crafting expus in shop: 2 token-uri Legendary compatibile + cost craft -> token Mythic (max 1 mythic per turn):
+  - **PhoenixBarrage** (DoubleShot+FireTrail): kill-urile pe inamici care ard dau embers; la 10, furtuna de foc aprinde toti inamicii de pe harta.
+  - **RovingBruiser** (Knockback+Movable): knockback la a 2-a lovitura, 2 celule, unda de soc AoE + vulnerabilitate (+25% damage de la toate turnurile, refresh nu stack).
+  - **ShieldedRunner** (ReflectiveShield+Movable): la contact cu scutul plin, firewall-ul merge spre spawn (20% din HP-ul curent + stun 1.5s la tot ce traverseaza); scutul se goleste instant la activare (anti-cheese).
+
+**Balans (dificultate roguelike):**
+- `tools/balance_sim.cpp` — simulator headless (`cmake --build build --target balance_sim`): ruleaza sute de run-uri cu strategii-arhetip si raporteaza win rate / valul mortii
+- Formule noi in `Game::buildWave`: `wave_mult` (HP creste cu valul) × `hp_mult` (RoR2, weight din cumparaturi, coeficient redus 0.01→0.005 ca buy-urile sa fie net pozitive).
+- `leak_damage` fix per tip de inamic (in `enemies.json`) in loc de HP-ul curent — atritie granulara, nu moarte binara.
+- Escaladare de pret la Mini (+6/buc cumparata) — anti-spam de stats, decizii reale in shop.
+- Rezultat sim (bot optim): balanced ~90%, economy ~75% (trece pe avarii), turtle/naive 0%. Un om real castiga prima data dupa cateva run-uri.
+
+**Audio (SFML audio, totul generat procedural — `tools/generate_audio.py`):**
+- 14 SFX (trageri, impact, kill, alarma leak, shop, jingles) + loop synthwave intunecat; `AudioManager` cu pool de voci si throttle, detinut de `SceneManager`.
+
+**Sprites:** toate turnurile si inamicii au acum pixel art (`tools/generate_sprites.py` pentru cele lipsa).
+
+### v0.4.1 - iterare dupa primul playtest
+
+- **20 de valuri** (boss ILOVEYOU la final), bugete recurbate.
+- **Nerf Major STAT** (RARE): +20% (range +15%) in loc de +30% — nu mai e spam-win.
+- **Mini-uri relevante mai mult timp**: treapta de pret +3 (era +6).
+- **Bosii imuni la knockback** — disparut stall-ul infinit pe ILOVEYOU.
+- **Multiplicatori legendari** (anti-faceroll): DoubleShot focuri extra 60%, MultiTarget tinte secundare 70%, pierce 50%, FireTrail 0.3dps×3s; ability tokens costa +20 weight.
+- **Evenimentul de loterie (scam-ad)**: popup stil reclama inainte de valurile 9/12; REDEEM = ruta hardcore — 6 valuri cu HP ×1.6 (doar HP, nu numar), la final +250cr si un **Mythic Token universal**; boss-ul final e buffat ×1.5 pe ruta hardcore.
+- **Mythic redesign**: Mythic Token (din loterie) aplicat pe un turn care are deja 2 Legendare compatibile (o reteta) = evolutia Mythic. Repetabil cat timp ai token + pereche.
+- Efectele vizuale (proiectile/dare/damage numbers) se curata la finalul valului.
+- Sim (bot perfect-informat): synergy ~91%, stats-only ~2%, fara shop 0% — legendarele definesc build-ul, exact identitatea de roguelike.
+
+### v0.4.2 - proiectile reale
+
+- **Proiectilele sunt acum entitati de LOGICA** (`Shot`, in `Wave`): turnurile lanseaza proiectile homing, damage-ul si efectele se aplica la IMPACT. Vizualul deseneaza exact aceste proiectile — sincron perfect prin constructie.
+- **Predicted death targeting**: turnurile nu mai tintesc inamici pe care proiectilele din zbor ii vor ucide oricum (fara overkill irosit; fizzle doar la curse-uri reale).
+- **Knockback fizic**: inamicul aluneca vizibil inapoi pe drum (~0.3s), nu se mai teleporteaza. Anti-cheese: max 2 knockback-uri/s per turn; excesul devine slow 50%/1s.
+- **Stiluri de proiectil pe tier de evolutie** (mythic > legendar > epic; mythic-ul ascunde legendarele-ingredient): Phoenix = nucleu alb + inel de foc pulsand; Bruiser = inel de soc in expansiune; DoubleShot = inele aurii duble + rafale decalate; FireTrail = proiectil incins + dara; Knockback = inel portocaliu gros; Epic = inel mov. Marimea creste cu damage-ul.
+- **Mythic preview**: cu Mythic Token activ, hover pe un turn compatibil arata numele/reteta/descrierea evolutiei inainte de aplicare.
+- Fix: boss-ul nu se mai spawneaza de 2 ori la trecerea in endless (valul 20 nu mai era inchis corect).
+- Sim: echilibrul s-a pastrat dupa refactor (synergy ~91%, stats-only ~2%).
+
+### v0.4.3 - calibrare finala de dificultate
+
+- **wave_mult 1+0.085·(val−1)** — prag sensibil (0.08 → 99.5% win bot, 0.09 → 2.5%); tinta: bot stats-only ~98% ⇒ om real ~30-50% fara legendare.
+- **FireTrail buff**: arsura pe lovitura directa 0.9×dmg×3s (era 0.3 — mult sub DoubleShot la acelasi pret); furtuna Phoenix ramane 0.3.
+- **MultiTarget cost 200→300**; oferte de shop mereu DISTINCTE (resample la dubluri).
+- `enemies.json`: leak damage fix per tip (5/4/12, boss = defeat instant), boss 4000 HP, AV 28 damage (carry alternativ).
+
+### v0.4.4 - juice
+
+- **VisualEvents**: simularea (Wave) emite evenimente reale de tragere/impact/moarte; EffectsLayer le deseneaza, niciun efect nu mai e ghicit din diff-uri de HP. Tot ce e lumina se deseneaza aditiv (`sf::BlendAdd` + glow procedural).
+- **Impact diferentiat pe stil si damage**; inamicii **explodeaza** in particule de culoarea lor + "+$X" la kill; turnurile au **recoil + muzzle flash**; shockwave-ul Bruiser are inel real pe raza de efect.
+- **Statusuri vizibile**: flacari pe inamicii care ard, contur violet pe vulnerabili, tenta albastra pe slow, scantei pe stun; damage numbers colorate pe sursa.
+- **Phoenix**: embers-ii orbiteaza turnul (counter vizibil 0-10); firestorm-ul = val de foc pe toata harta + flash + shake.
+- **Economia**: monedele ies vizual din mineri la final de val si zboara spre contor (count-up animat, ding-uri cu pitch crescator); vignette rosie + shake la leak; pitch jitter pe sunetele de gameplay.
+- **DoubleShot** pe aceeasi tinta (pierce-ul ascuns spre al doilea inamic a fost scos — facea DS sa arate ca MultiTarget); compensare: focul extra 60% → 75%.
+- **MultiTarget**: tintele secundare 70% → 100%, focurile pleaca decalat 
+- **Miner buff**: income 9 → 13/val.
+- **Ruta hardcore refacuta**: HP-ul gauntlet-ului urca in RAMPA ×1.2 → ×1.5 (era flat ×1.6 = zid: 0% win la toti botii) si kill-urile platesc +30% cat tine gauntlet-ul — riscul plateste live, nu doar la final.
+- **balance_sim cu mod hardcore** (botul accepta loteria); fiecare strategie raportata pe ambele rute. Rezultate: normal — balanced 99.5%, synergy 100%, economy 75%; hardcore — synergy 23.5%, economy 18.5%, balanced 8.5% (morti concentrate la finalul gauntlet-ului, w13-14).
+
+### v0.4.5 - suport, AoE, pierce clasic
+
+- **Honeypot devine turn de suport** prin 2 evolutii noi: **Overclock** (legendar, $400: +25% attack speed turnurilor din aura) si **Amplify** (epic, $250: +15% damage in aura). Buff-ul e local si recalculat per tick (muti turnul, dispare); intre honeypot-uri se ia maximul (anti-stack), stack-urile pe acelasi honeypot se aduna. Aura honeypot-ului e acum vizibila permanent (inel cyan pulsand = Overclock, magenta = Amplify).
+- **BlastWave** (legendar, $500, doar Antivirus): impactul face **35% damage AoE** pe raza de 1.2 celule in jurul tintei, AV devine tunul cc; inel de explozie pe raza reala.
+- **DoubleShot cu pierce**: proiectilele ontinua spre inamicul din spatele tintei pe directia de zbor (con ~60°, max 2.5 celule), cu damage injumatatit per strapungere; knockback-ul se consuma la prima lovitura, focul aprinde tot ce strapunge. Focul extra revine la 60%.
+- **Targeting LAST** (al 4-lea mod, tasta T): tinteste inamicul cel mai din spate, FireTrail-ul are timp maxim sa arda.
+- Sim: hardcore synergy **23.5% → 79.5%** — ruta hardcore se castiga acum prin build (suport+AoE+pierce), nu prin stats brute (balanced stats-only ramane 8.5%); normal neschimbat.
+
+### v0.4.6 - feedback playtest: claritate evolutii + endless reimaginat
+
+- **Niciun token irosit pe tacute**: evolutiile care nu se stackeaza (BiggerAura, Movable, Armored, ReflectShield, Knockback) RESPING a doua aplicare cu mesaj clar, iar token-ul NU se consuma. Cele stackabile (MultiTarget, DoubleShot, FireTrail, BlastWave, Overclock, Amplify) isi spun efectul per stack.
+- **Tooltips peste tot**: hover pe orice evolutie din panoul turnului sau pe un token din HUD arata CE face efectiv, cu numerele reale. Panoul de info isi calculeaza inaltimea dinamic si grupeaza evolutiile cu contor ("DoubleShot x2") se vad toate, oricate ai.
+- **BiggerAura reechilibrat**: era x2 raza PER stack (3 stacks = aura cat harta); acum +50% raza, slow 20%→30%, max 1 per honeypot. Cercul de hover arata raza reala a aurei.
+- Fix: pip-ul Amplify e mov (epic), nu portocaliu.
+- **Endless**: scam-ad-ul revine la fiecare 4 valuri (gauntlet repetabil: HP boostat 6 valuri contra +250cr + Mythic Token); **ILOVEYOU devine inamic obisnuit de Director** (cost 60 buget, leak 30, isi pastreaza imunitatea la knockback) — doar boss-ul scriptat din valul 20 ramane defeat instant la scapare.
+
+### v0.4.6 fix - portabilitate, robustete, refactor design
+
+Fixuri dupa feedback de review pe versiunea anterioara:
+
+- **"Continue" nu mai crapa.** Era un round-trip de save asimetric: writer-ul scria raritatea Title Case ("Legendary"), reader-ul accepta doar UPPER ("LEGENDARY") => `std::invalid_argument` neprins => `terminate`. Acum `rarityFromString` e case-insensitive (merg si save-urile vechi deja scrise), iar fallback-ul de la Continue prinde `std::exception` (orice save corupt => run nou, nu crash).
+- **Portabilitate font.** Pe Linux/macOS textul disparea (fallback-urile erau doar cai Windows). Toate cele 4 `loadFont` cauta acum si fonturi de sistem Linux (DejaVu/Liberation pe Debian/Fedora/Arch) si macOS.
+- **Sprite-urile sunt acum in repo** (erau untracked => lipseau la `git clone`, jocul cadea pe fallback-ul geometric).
+- **Refactor `GlobalStatBuffs`: struct gras -> harta `(tip, stat) -> procent`.** Inainte un singur `TowerTypeBuffs` continea toate stat-urile (damage/slow/income/...), deci fiecare tip de turn cara si campuri care nu-l priveau (un Honeypot avea un `income_pct` mereu 0) si orice stat nou cerea atins in 5-6 locuri. Acum cheia de stat e direct `stat_field`-ul din JSON: cele 7 ramuri `if/else` din shop devin o linie (`add(tip, stat, val)`), adaugarea unui stat e pur din date, iar niciun turn nu mai cara campuri straine. Format de save neschimbat (compatibil), `balance_sim` identic la virgula (bot stats-only/synergy/economy neschimbati) => matematica buff-urilor nealterata.
+
 ### Folosiți template-ul corespunzător grupei voastre!
 
 | Laborant  | Link template                                |
