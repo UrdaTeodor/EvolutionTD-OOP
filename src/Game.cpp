@@ -431,18 +431,21 @@ void Game::serializeTo(SaveData& out) const {
         out.towers.push_back(std::move(te));
     }
 
-    // Buffs
+    // Buffs: harta (tip, stat) -> formatul de save pe campuri fixe (neschimbat,
+    // ca save-urile vechi sa ramana compatibile). Adaptorul intre harta interna
+    // si BuffEntry traieste DOAR aici, intr-un singur loc.
     out.buffs.clear();
-    for (const auto& [type_key, tb] : buffs_.all()) {
+    for (const auto& entry : buffs_.all()) {
+        const std::string& type_key = entry.first;
         SaveData::BuffEntry be;
         be.type_key         = type_key;
-        be.damage_pct       = tb.damage_pct;
-        be.range_pct        = tb.range_pct;
-        be.attack_speed_pct = tb.attack_speed_pct;
-        be.max_hp_pct       = tb.max_hp_pct;
-        be.regen_pct        = tb.regen_pct;
-        be.slow_pct         = tb.slow_pct;
-        be.income_pct       = tb.income_pct;
+        be.damage_pct       = buffs_.pct(type_key, "damage_pct");
+        be.range_pct        = buffs_.pct(type_key, "range_pct");
+        be.attack_speed_pct = buffs_.pct(type_key, "attack_speed_pct");
+        be.max_hp_pct       = buffs_.pct(type_key, "max_hp_pct");
+        be.regen_pct        = buffs_.pct(type_key, "regen_pct");
+        be.slow_pct         = buffs_.pct(type_key, "slow_pct");
+        be.income_pct       = buffs_.pct(type_key, "income_pct");
         out.buffs.push_back(std::move(be));
     }
 
@@ -461,17 +464,17 @@ void Game::restoreFrom(const SaveData& src) {
     player_weight_      = src.player_weight;
     endless_active_     = src.endless_active;
 
-    // Buffs: rebuild
+    // Buffs: rebuild din formatul de save (campuri fixe) in harta interna.
+    // add() pe o harta proaspata = setare (acumuleaza din 0).
     buffs_ = GlobalStatBuffs{};
     for (const auto& be : src.buffs) {
-        auto& tb = buffs_.mutable_for(be.type_key);
-        tb.damage_pct       = be.damage_pct;
-        tb.range_pct        = be.range_pct;
-        tb.attack_speed_pct = be.attack_speed_pct;
-        tb.max_hp_pct       = be.max_hp_pct;
-        tb.regen_pct        = be.regen_pct;
-        tb.slow_pct         = be.slow_pct;
-        tb.income_pct       = be.income_pct;
+        buffs_.add(be.type_key, "damage_pct",       be.damage_pct);
+        buffs_.add(be.type_key, "range_pct",        be.range_pct);
+        buffs_.add(be.type_key, "attack_speed_pct", be.attack_speed_pct);
+        buffs_.add(be.type_key, "max_hp_pct",       be.max_hp_pct);
+        buffs_.add(be.type_key, "regen_pct",        be.regen_pct);
+        buffs_.add(be.type_key, "slow_pct",         be.slow_pct);
+        buffs_.add(be.type_key, "income_pct",       be.income_pct);
     }
 
     // Towers: clear si replay placeTower cu money bypass (placeTower deduce cost,

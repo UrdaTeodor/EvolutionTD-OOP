@@ -2,39 +2,40 @@
 #include <string>
 #include <unordered_map>
 
-// Buffuri globale pe tip de tower (cheia e string-ul din DataRegistry).
-// Cand cumperi un Mini (ex.+5% damage Antivirus), se face buffsForType("antivirus").damage_pct += 0.05.
-// Cand un tower calculeaza un stat efectiv, multiplica baza din spec cu (1 + pct). (deci nu exponential)
+// Buff-uri globale procentuale, indexate pe (tip de tower, nume de stat).
 //
-// stats relevante difera per tower type (Honeypot nu are damage, Firewall nu are atk speed).
-struct TowerTypeBuffs {
-    float damage_pct       = 0.0f;
-    float range_pct        = 0.0f;
-    float attack_speed_pct = 0.0f;
-    float max_hp_pct       = 0.0f;   // Firewall
-    float regen_pct        = 0.0f;   // Firewall
-    float slow_pct         = 0.0f;   // Honeypot 
-    float income_pct       = 0.0f;   // Miner
-};
-
+// Cheile de stat sunt EXACT stat_field-urile din data/evolutions.json
+// ("damage_pct", "income_pct", "slow_pct", ...). Inainte exista un struct
+// `TowerTypeBuffs` cu campuri fixe pentru toate stat-urile, ceea ce facea ca
+// FIECARE tip de turn sa care si campuri care nu-l privesc (un Honeypot avea
+// un income_pct mereu 0, un Miner un damage_pct mereu 0) si cerea atins in
+// 5-6 locuri la fiecare stat nou (struct + dispatch in shop + save/load).
+// Acum un (tip, stat) exista in harta DOAR daca a fost cumparat ceva, iar
+// adaugarea unui stat nou e pur din date.
 class GlobalStatBuffs {
-    std::unordered_map<std::string, TowerTypeBuffs> per_type_;
+    // type_key -> (stat_name -> procent acumulat)
+    std::unordered_map<std::string,
+                       std::unordered_map<std::string, float>> per_type_;
 
 public:
-    // Lookup non-const
-    // Daca cheia nu exista o creeaza cu valori 0.
-    TowerTypeBuffs& mutable_for(const std::string& type_key) {
-        return per_type_[type_key];
+    // Acumuleaza un buff (ex. add("antivirus", "damage_pct", 0.07)).
+    void add(const std::string& type_key, const std::string& stat, float value) {
+        per_type_[type_key][stat] += value;
     }
 
-    // Lookup const returneaza o copie (sau zero default daca tipul nu exista).
-    TowerTypeBuffs for_type(const std::string& type_key) const {
-        auto it = per_type_.find(type_key);
-        if (it == per_type_.end()) return {};
-        return it->second;
+    // Procentul acumulat pentru (tip, stat); 0 daca nu s-a cumparat nimic.
+    // Tower-ele multiplica baza din spec cu (1 + pct) cand calculeaza stats
+    // efective (deci aditiv intre buff-uri, nu exponential).
+    float pct(const std::string& type_key, const std::string& stat) const {
+        auto t = per_type_.find(type_key);
+        if (t == per_type_.end()) return 0.0f;
+        auto s = t->second.find(stat);
+        return (s == t->second.end()) ? 0.0f : s->second;
     }
 
     // Iterare pentru save/load.
     // cppcheck-suppress unusedFunction
-    const std::unordered_map<std::string, TowerTypeBuffs>& all() const { return per_type_; }
+    const std::unordered_map<std::string,
+                             std::unordered_map<std::string, float>>&
+    all() const { return per_type_; }
 };

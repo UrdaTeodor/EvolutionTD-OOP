@@ -16,9 +16,15 @@ namespace {
 
     bool loadFont(sf::Font& font) {
         const char* paths[] = {
-            "assets/font.ttf",
-            "C:/Windows/Fonts/segoeui.ttf",
+            "assets/font.ttf",                  // bundled (portabil, cautat primul)
+            "C:/Windows/Fonts/segoeui.ttf",     // Windows
             "C:/Windows/Fonts/arial.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",         // Debian/Ubuntu
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSans.ttf",                  // Fedora
+            "/usr/share/fonts/TTF/DejaVuSans.ttf",                     // Arch
+            "/System/Library/Fonts/Supplemental/Arial.ttf",           // macOS
+            "/Library/Fonts/Arial.ttf",
         };
         for (const char* p : paths) {
             if (font.loadFromFile(p)) return true;
@@ -114,9 +120,11 @@ void MainMenuScene::handleEvent(const sf::Event& event) {
             try {
                 SaveData d = SaveManager::read();
                 manager_.requestReplace(std::make_unique<GameScene>(manager_, registry_, d));
-            } catch (const GameException& err) {
+            } catch (const std::exception& err) {
+                // Orice save corupt (inclusiv std::invalid_argument din parsarea
+                // raritatii) => fallback la run nou, NU crash. Inainte prindeam
+                // doar GameException, iar invalid_argument scapa => terminate.
                 std::cerr << "Continue failed: " << err.what() << "\n";
-                // Daca save e corupt, fallback la run nou.
                 manager_.requestReplace(std::make_unique<GameScene>(manager_, registry_));
             }
         } else if (quit_btn_.contains(mx, my)) {

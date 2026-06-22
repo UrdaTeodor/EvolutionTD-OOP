@@ -35,7 +35,7 @@ const std::string& Tower::getTypeKey()  const { return type_key_; }
 const TowerSpec&   Tower::spec()        const { return *spec_; }
 
 float Tower::effectiveRange(const GlobalStatBuffs& buffs) const {
-    return spec_->range * (1.0f + buffs.for_type(type_key_).range_pct);
+    return spec_->range * (1.0f + buffs.pct(type_key_, "range_pct"));
 }
 
 // cppcheck-suppress unusedFunction

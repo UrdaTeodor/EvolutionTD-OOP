@@ -17,7 +17,7 @@ void HoneypotTower::update(std::vector<Enemy>& enemies, float /*deltaTime*/,
         slow = 1.0f - (1.0f - slow) * (1.0f + 0.5f * biggerAuraStacks);
     }
 
-    float slow_pct = buffs.for_type(getTypeKey()).slow_pct;
+    float slow_pct = buffs.pct(getTypeKey(), "slow_pct");
     slow = slow * (1.0f - slow_pct);
     if (slow < 0.0f) slow = 0.0f;
 

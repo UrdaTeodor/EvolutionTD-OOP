@@ -19,7 +19,7 @@ std::unique_ptr<Tower> BytecoinMinerTower::clone() const {
 
 // cppcheck-suppress unusedFunction
 int BytecoinMinerTower::collectIncome(const GlobalStatBuffs& buffs) const {
-    float multiplier = 1.0f + buffs.for_type(getTypeKey()).income_pct;
+    float multiplier = 1.0f + buffs.pct(getTypeKey(), "income_pct");
     return static_cast<int>(spec().income_per_wave * multiplier);
 }
 

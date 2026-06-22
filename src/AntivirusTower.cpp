@@ -23,9 +23,8 @@ void AntivirusTower::update(std::vector<Enemy>& enemies, float deltaTime,
     if (attackCooldown > 0.0f) return;
 
     // Stats efective cu buff aplicat (Mini / Rare via GlobalStatBuffs).
-    const auto& tb = buffs.for_type(getTypeKey());
-    float damage_effective       = spec().damage       * (1.0f + tb.damage_pct);
-    float attack_speed_effective = spec().attack_speed * (1.0f + tb.attack_speed_pct);
+    float damage_effective       = spec().damage       * (1.0f + buffs.pct(getTypeKey(), "damage_pct"));
+    float attack_speed_effective = spec().attack_speed * (1.0f + buffs.pct(getTypeKey(), "attack_speed_pct"));
     float range                  = effectiveRange(buffs);
 
     // Pick targets. MULTI_TARGET -> top 2 nearest. Default -> top 1.

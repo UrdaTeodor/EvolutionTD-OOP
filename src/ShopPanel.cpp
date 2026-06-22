@@ -356,14 +356,9 @@ ShopPanel::ClickResult ShopPanel::handleClick(float mx, float my, int& money, in
 
 void ShopPanel::applyMini(const MiniStatSpec& spec) {
     if (spec.target_type.empty()) return;
-    auto& tb = buffs_.mutable_for(spec.target_type);
-    if      (spec.stat_field == "damage_pct")       tb.damage_pct       += spec.stat_value;
-    else if (spec.stat_field == "range_pct")        tb.range_pct        += spec.stat_value;
-    else if (spec.stat_field == "attack_speed_pct") tb.attack_speed_pct += spec.stat_value;
-    else if (spec.stat_field == "max_hp_pct")       tb.max_hp_pct       += spec.stat_value;
-    else if (spec.stat_field == "regen_pct")        tb.regen_pct        += spec.stat_value;
-    else if (spec.stat_field == "slow_pct")         tb.slow_pct         += spec.stat_value;
-    else if (spec.stat_field == "income_pct")       tb.income_pct       += spec.stat_value;
+    // Numele stat-ului din JSON e direct cheia in GlobalStatBuffs — fara
+    // dispatch pe campuri (inainte era un if/else de 7 ramuri aici).
+    buffs_.add(spec.target_type, spec.stat_field, spec.stat_value);
 }
 
 void ShopPanel::applyMajorStat(const MajorEvolutionSpec& spec) {

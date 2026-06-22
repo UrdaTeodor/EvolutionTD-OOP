@@ -21,9 +21,8 @@ void AdblockerTower::update(std::vector<Enemy>& enemies, float deltaTime,
     attackCooldown -= deltaTime;
     if (attackCooldown > 0.0f) return;
 
-    const auto& tb = buffs.for_type(getTypeKey());
-    float damage_effective       = spec().damage       * (1.0f + tb.damage_pct);
-    float attack_speed_effective = spec().attack_speed * (1.0f + tb.attack_speed_pct);
+    float damage_effective       = spec().damage       * (1.0f + buffs.pct(getTypeKey(), "damage_pct"));
+    float attack_speed_effective = spec().attack_speed * (1.0f + buffs.pct(getTypeKey(), "attack_speed_pct"));
     float range                  = effectiveRange(buffs);
 
     int max_targets = 1 + multiTargetStacks;

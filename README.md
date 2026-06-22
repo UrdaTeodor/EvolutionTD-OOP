@@ -63,7 +63,7 @@ UPDATE v0.2.5a:
 **Tower si EvolutionContext:**
 - Tower base nu mai are membri `damage`/`range`/etc., citeste din `TowerSpec` (din `DataRegistry`).
 - `GlobalStatBuffs` accumulator per TowerType, pass-uit ca parametru in `update(enemies, dt, buffs)`. pentru evolutii globale fara per-instance state duplicat la v0.3
-- `EvolutionContext { buffs, target_type_key, target_tower }` — struct pasat la `Evolution::apply()` permite Stat (global) si Ability (instanta) fara dynamic_cast la caller.
+- `EvolutionContext { buffs, target_type_key, target_tower }` struct pasat la `Evolution::apply()` permite Stat (global) si Ability (instanta) fara dynamic_cast la caller.
 
 **Game state pregatit pentru save/load:**
 - `std::mt19937 rng_` membru in Game (seedable, serializable cu `operator<<` pentru run reproductibil si save).
@@ -104,6 +104,17 @@ Director tine WeightedTable<EnemySpec> cu inamici deblocati progresiv prin WaveS
 
 
 
+
+### v0.3.0 fix - portabilitate, robustete, refactor design
+
+Fixuri dupa feedback de review, peste v0.3.0:
+
+- **"Continue" nu mai crapa.** Era un round-trip de save asimetric: la salvare raritatea se scria Title Case ("Legendary"), la incarcare se accepta doar UPPER ("LEGENDARY") => `std::invalid_argument` neprins => `terminate`. Acum `rarityFromString` e case-insensitive (merg si save-urile vechi deja scrise), iar fallback-ul de la Continue prinde `std::exception` (orice save corupt => run nou, nu crash).
+- **Portabilitate font.** Pe Linux/macOS textul disparea (fallback-urile erau doar cai Windows). Toate cele 4 `loadFont` cauta acum si fonturi de sistem Linux (DejaVu/Liberation pe Debian/Fedora/Arch) si macOS.
+- **Sprite-urile sunt acum in repo** (erau untracked => lipseau la `git clone`, jocul cadea pe fallback-ul geometric).
+- **Refactor `GlobalStatBuffs`: struct gras -> harta `(tip, stat) -> procent`.** Inainte un singur `TowerTypeBuffs` continea toate stat-urile (damage/slow/income/...), deci fiecare tip de turn cara si campuri care nu-l priveau (un Honeypot avea un `income_pct` mereu 0) si orice stat nou cerea atins in 5-6 locuri. Acum cheia de stat e direct `stat_field`-ul din JSON: dispatch-ul `if/else` din shop devine o linie (`add(tip, stat, val)`), adaugarea unui stat e pur din date, iar niciun turn nu mai cara campuri straine. Format de save neschimbat (compatibil).
+
+> Continuarea (v0.4.x: efecte/juice, turnuri de suport, AoE, endless reimaginat) traieste pe branch-ul **`v0.4.6`** — `git checkout v0.4.6` pentru a o testa, fara a pierde v0.3.0 de pe `main`.
 
 ### Folosiți template-ul corespunzător grupei voastre!
 

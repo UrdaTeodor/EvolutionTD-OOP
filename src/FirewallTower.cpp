@@ -23,8 +23,8 @@ void FirewallTower::update(std::vector<Enemy>& enemies, float deltaTime,
                            const GlobalStatBuffs& buffs,
                            const std::vector<std::pair<int, int>>& path) {
     // Stats efective cu buff aplicat
-    float max_hp_effective = spec().max_hp    * (1.0f + buffs.for_type(getTypeKey()).max_hp_pct);
-    float regen_effective  = spec().regen_rate * (1.0f + buffs.for_type(getTypeKey()).regen_pct);
+    float max_hp_effective = spec().max_hp    * (1.0f + buffs.pct(getTypeKey(), "max_hp_pct"));
+    float regen_effective  = spec().regen_rate * (1.0f + buffs.pct(getTypeKey(), "regen_pct"));
 
     currentHP = std::min(currentHP + regen_effective * deltaTime, max_hp_effective);
     shield_cooldown_ = std::max(0.0f, shield_cooldown_ - deltaTime);

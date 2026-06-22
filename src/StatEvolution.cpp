@@ -24,12 +24,12 @@ void StatEvolution::apply(const EvolutionContext& ctx) {
         throw IncompatibleEvolutionException(
             "StatEvolution.apply: target_type_key gol");
     }
-    auto& tb = ctx.buffs->mutable_for(ctx.target_type_key);
-    tb.damage_pct       += damageBoostPct;
-    tb.range_pct        += rangeBoostPct;
-    tb.attack_speed_pct += attackSpeedBoostPct;
-    tb.max_hp_pct       += hpBoostPct;
-    tb.regen_pct        += regenBoostPct;
+    const std::string& k = ctx.target_type_key;
+    ctx.buffs->add(k, "damage_pct",       damageBoostPct);
+    ctx.buffs->add(k, "range_pct",        rangeBoostPct);
+    ctx.buffs->add(k, "attack_speed_pct", attackSpeedBoostPct);
+    ctx.buffs->add(k, "max_hp_pct",       hpBoostPct);
+    ctx.buffs->add(k, "regen_pct",        regenBoostPct);
 }
 
 std::unique_ptr<Evolution> StatEvolution::clone() const {

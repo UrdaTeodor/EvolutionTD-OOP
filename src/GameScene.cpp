@@ -28,9 +28,15 @@ namespace {
 
     bool loadFont(sf::Font& font) {
         const char* paths[] = {
-            "assets/font.ttf",
-            "C:/Windows/Fonts/segoeui.ttf",
+            "assets/font.ttf",                  // bundled (portabil, cautat primul)
+            "C:/Windows/Fonts/segoeui.ttf",     // Windows
             "C:/Windows/Fonts/arial.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",         // Debian/Ubuntu
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSans.ttf",                  // Fedora
+            "/usr/share/fonts/TTF/DejaVuSans.ttf",                     // Arch
+            "/System/Library/Fonts/Supplemental/Arial.ttf",           // macOS
+            "/Library/Fonts/Arial.ttf",
         };
         for (const char* p : paths) {
             if (font.loadFromFile(p)) return true;
@@ -532,7 +538,8 @@ void GameScene::renderTowerInfoPanel(sf::RenderWindow& window, const Tower* towe
     window.draw(bg);
 
     const auto& spec = tower->spec();
-    const auto& tb   = game_.getBuffs().for_type(tower->getTypeKey());
+    const std::string& tk = tower->getTypeKey();
+    const GlobalStatBuffs& gbuffs = game_.getBuffs();
 
     auto drawLine = [&](const std::string& s, unsigned size, float y_offset, sf::Color col) {
         sf::Text t;
@@ -556,12 +563,12 @@ void GameScene::renderTowerInfoPanel(sf::RenderWindow& window, const Tower* towe
         drawLine(s, 16, y, sf::Color(200, 220, 200));
         y += 22.0f;
     };
-    if (spec.damage       > 0.0f) stat("Damage",   spec.damage,       tb.damage_pct);
-    if (spec.range        > 0.0f) stat("Range",    spec.range,        tb.range_pct);
-    if (spec.attack_speed > 0.0f) stat("AtkSpeed", spec.attack_speed, tb.attack_speed_pct);
-    if (spec.max_hp       > 0.0f) stat("MaxHP",    spec.max_hp,       tb.max_hp_pct);
-    if (spec.regen_rate   > 0.0f) stat("Regen",    spec.regen_rate,   tb.regen_pct);
-    if (spec.income_per_wave > 0) stat("Income",   static_cast<float>(spec.income_per_wave), tb.income_pct);
+    if (spec.damage       > 0.0f) stat("Damage",   spec.damage,       gbuffs.pct(tk, "damage_pct"));
+    if (spec.range        > 0.0f) stat("Range",    spec.range,        gbuffs.pct(tk, "range_pct"));
+    if (spec.attack_speed > 0.0f) stat("AtkSpeed", spec.attack_speed, gbuffs.pct(tk, "attack_speed_pct"));
+    if (spec.max_hp       > 0.0f) stat("MaxHP",    spec.max_hp,       gbuffs.pct(tk, "max_hp_pct"));
+    if (spec.regen_rate   > 0.0f) stat("Regen",    spec.regen_rate,   gbuffs.pct(tk, "regen_pct"));
+    if (spec.income_per_wave > 0) stat("Income",   static_cast<float>(spec.income_per_wave), gbuffs.pct(tk, "income_pct"));
 
     y += 10.0f;
     drawLine("Evolutions:", 16, y, sf::Color(180, 200, 230));
@@ -763,7 +770,7 @@ void GameScene::render(sf::RenderWindow& window) {
         const std::string& key = keys[selected_type_ - 1];
         float baseR = registry_.getTower(key).range;
         if (baseR > 0.0f) {
-            float effR = baseR * (1.0f + game_.getBuffs().for_type(key).range_pct);
+            float effR = baseR * (1.0f + game_.getBuffs().pct(key, "range_pct"));
             sf::Vector2f c = cellCenter(static_cast<float>(hoverCol),
                                         static_cast<float>(hoverRow));
             drawRangeCircle(window, c, effR * CELL_PX,
