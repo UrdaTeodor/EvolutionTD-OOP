@@ -69,27 +69,27 @@ inline const char* abilityDisplayName(AbilityType a) {
 inline const char* abilityDescription(AbilityType a) {
     switch (a) {
         case AbilityType::MULTI_TARGET:
-            return "Ataca +1 inamic simultan, la 100% damage. Se stackeaza (+1 tinta per token).";
+            return "Attacks +1 enemy. Stacks";
         case AbilityType::BIGGER_AURA:
-            return "Honeypot: aura cu 50% mai mare si slow 30% (de la 20%). NU se stackeaza.";
+            return "Honeypot: +50% aura radius, slow 20% -> 30%. Does not stack.";
         case AbilityType::ARMORED:
-            return "Firewall: blocarile costa doar 50% din HP-ul firewall-ului. NU se stackeaza.";
+            return "Firewall: blocks cost only 50% of the firewall's HP. Does not stack.";
         case AbilityType::AMPLIFY:
-            return "Honeypot: +15% damage pentru turnurile din aura. Se stackeaza pe acelasi honeypot.";
+            return "Honeypot: +15% damage to towers inside the aura. Stacks on the same honeypot.";
         case AbilityType::DOUBLE_SHOT:
-            return "Rafala: +1 foc (60% dmg) si proiectilele strapung inamicul din spatele tintei (50% dmg). Se stackeaza.";
+            return "+1 shot (60% dmg); shots pierce to the enemy behind the target (50% dmg). Stacks.";
         case AbilityType::FIRE_TRAIL:
-            return "Aprinde tinta la impact: 90% din damage pe secunda, timp de 3s. Se stackeaza.";
+            return "Ignites the target on hit: 90% of damage per second for 3s. Stacks.";
         case AbilityType::KNOCKBACK_EVERY_3:
-            return "La fiecare a 3-a lovitura inamicul e impins inapoi (max 2/s; bosii imuni). NU se stackeaza.";
+            return "Every 3rd hit knocks the enemy back (max 2/s; bosses immune). Does not stack.";
         case AbilityType::REFLECTIVE_SHIELD:
-            return "Firewall: arunca inamicul 3 celule inapoi, cooldown 5s. NU se stackeaza.";
+            return "Firewall: shoves the enemy 3 cells back, 5s cooldown. Does not stack.";
         case AbilityType::MOVABLE:
-            return "Turnul poate fi mutat cu tasta M, inclusiv in timpul valului. NU se stackeaza.";
+            return "Tower can be moved with M, even mid-wave. Does not stack.";
         case AbilityType::OVERCLOCK:
-            return "Honeypot: +25% viteza de atac pentru turnurile din aura. Se stackeaza pe acelasi honeypot.";
+            return "Honeypot: +25% attack speed to towers inside the aura. Stacks on the same honeypot.";
         case AbilityType::SPLASH:
-            return "Impactul face 35% din damage tuturor inamicilor pe 1.2 celule in jurul tintei. Se stackeaza.";
+            return "Impact deals 35% of damage to all enemies within 1.2 cells of the target. Stacks.";
     }
     return "";
 }
