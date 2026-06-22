@@ -142,8 +142,10 @@ void ProjectileTower::update(std::vector<Enemy>& enemies, float deltaTime,
 
     for (size_t ti = 0; ti < targets.size(); ++ti) {
         Enemy* target = targets[ti];
-        float damage_per_attack = damage_effective
-                                * (ti == 0 ? 1.0f : EXTRA_TARGET_SCALE);
+        // EXTRA_TARGET_SCALE e 1.0 by design acum (tinte secundare la 100%);
+        // ternarul ramane ca buton de reglaj => ambele ramuri egale e intentionat.
+        // cppcheck-suppress duplicateExpressionTernary
+        float damage_per_attack = damage_effective * (ti == 0 ? 1.0f : EXTRA_TARGET_SCALE);
 
         // Evantai MultiTarget: focurile spre tinte diferite pleaca decalat cu
         // 40ms, in ordine — rafala se CITESTE ("matura valul"), nu se suprapune.

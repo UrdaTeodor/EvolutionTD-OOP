@@ -198,6 +198,7 @@ HudPanel::Hit HudPanel::hitTest(float mx, float my, int tokenCount) const {
     return {};
 }
 
+// cppcheck-suppress functionStatic
 bool HudPanel::sellButtonContains(float mx, float my, const Tower& tower) const {
     sf::Vector2f p = infoPanelPos(tower);
     sf::FloatRect sell(p.x + 12.0f, p.y + sellButtonY(tower),
@@ -205,6 +206,7 @@ bool HudPanel::sellButtonContains(float mx, float my, const Tower& tower) const 
     return sell.contains(mx, my);
 }
 
+// cppcheck-suppress functionStatic
 bool HudPanel::targetButtonContains(float mx, float my, const Tower& tower) const {
     if (tower.spec().attack_speed <= 0.0f) return false;
     sf::Vector2f p = infoPanelPos(tower);
@@ -213,6 +215,7 @@ bool HudPanel::targetButtonContains(float mx, float my, const Tower& tower) cons
     return btn.contains(mx, my);
 }
 
+// cppcheck-suppress functionStatic
 bool HudPanel::moveButtonContains(float mx, float my, const Tower& tower) const {
     if (!tower.isMovable()) return false;
     sf::Vector2f p = infoPanelPos(tower);
@@ -514,6 +517,7 @@ void HudPanel::renderLotteryPopup(sf::RenderWindow& window) const {
     window.draw(x);
 }
 
+// cppcheck-suppress functionStatic
 HudPanel::LotteryHit HudPanel::lotteryHit(float mx, float my) const {
     if (LOTTO_REDEEM.contains(mx, my)) return LotteryHit::REDEEM;
     if (LOTTO_CLOSE.contains(mx, my))  return LotteryHit::CLOSE;

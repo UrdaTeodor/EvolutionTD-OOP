@@ -258,6 +258,7 @@ void BoardRenderer::renderEnemies(sf::RenderWindow& window, const Game& game,
 
 // Bara mare de HP a boss-ului, sus peste grid, cu gradatii la fiecare 20%
 // (pragurile la care boss-ul isi schimba faza/sprite-ul).
+// cppcheck-suppress functionStatic
 void BoardRenderer::renderBossBar(sf::RenderWindow& window, const Enemy& boss) const {
     float ratio = (boss.getMaxHealth() > 0.0f)
                       ? boss.getCurrentHealth() / boss.getMaxHealth()
@@ -288,6 +289,7 @@ void BoardRenderer::renderBossBar(sf::RenderWindow& window, const Enemy& boss) c
     }
 }
 
+// cppcheck-suppress functionStatic
 void BoardRenderer::renderTowerRange(sf::RenderWindow& window, const Tower& tower,
                                      const GlobalStatBuffs& buffs) const {
     if (tower.getRange() <= 0.0f) return;
@@ -304,6 +306,7 @@ void BoardRenderer::renderTowerRange(sf::RenderWindow& window, const Tower& towe
                     sf::Color(255, 255, 255, 130));
 }
 
+// cppcheck-suppress functionStatic
 void BoardRenderer::renderPlacementPreview(sf::RenderWindow& window, const Game& game,
                                            const DataRegistry& registry, int selectedType,
                                            int hoverCol, int hoverRow) const {
@@ -325,6 +328,7 @@ void BoardRenderer::renderPlacementPreview(sf::RenderWindow& window, const Game&
     window.draw(hl);
 }
 
+// cppcheck-suppress functionStatic
 void BoardRenderer::renderTokenHalos(sf::RenderWindow& window, const Game& game,
                                      const std::function<bool(const Tower&)>& compatible) const {
     for (const auto& t : game.getTowers()) {
