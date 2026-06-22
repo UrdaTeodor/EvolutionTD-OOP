@@ -33,9 +33,9 @@ public:
         return (s == t->second.end()) ? 0.0f : s->second;
     }
 
-    // Iterare pentru save/load.
+    // Iterare pentru save/load (folosit de Game::serializeTo). Fals-pozitiv
+    // cppcheck (unusedFunction) — suppress-ul TREBUIE pe linia de deasupra
+    // definitiei, deci semnatura ramane pe o singura linie.
     // cppcheck-suppress unusedFunction
-    const std::unordered_map<std::string,
-                             std::unordered_map<std::string, float>>&
-    all() const { return per_type_; }
+    const std::unordered_map<std::string, std::unordered_map<std::string, float>>& all() const { return per_type_; }
 };
